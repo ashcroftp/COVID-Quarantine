@@ -1,8 +1,9 @@
 ---
 title: "Quantifying the impact of quarantine duration on COVID-19 transmission"
 author:
-  - "Peter Ashcroft, Sonja Lehtinen, and Sebastian Bonhoeffer"
-  - "*Institute of Integrative Biology, ETH Zurich, Switzerland*"
+  - "Peter Ashcroft\\textsuperscript{1}, Sonja Lehtinen\\textsuperscript{1}, Daniel C. Angst\\textsuperscript{1}, Nicola Low\\textsuperscript{2}, and Sebastian Bonhoeffer\\textsuperscript{1}"
+  - "\\textsuperscript{1}*Institute of Integrative Biology, ETH Zurich, Switzerland*,"
+  - "\\textsuperscript{2}*Institute of Social and Preventive Medicine, University of Bern, Bern, Switzerland*"
 output:
   pdf_document:
     citation_package: natbib
@@ -16,7 +17,7 @@ biblio-style: apalike
 knitr::opts_chunk$set(
   echo = FALSE,
   fig.width = 4,
-  fig.height = 3,
+  fig.height = 4,
   #fig.align = "center",
   cache = TRUE,
   warning = FALSE
@@ -27,67 +28,84 @@ library(cowplot)
 #' Some plot style functions
 plotTheme <- theme_bw() + theme(plot.background = element_rect(fill = "white", colour = "white"), panel.grid = element_blank(), strip.background = element_blank())
 plotTheme$text$size <- 12  #' Set text size
+
+lineSize <- 1.2
+strokeSize <- 0.8
+my_geom_point <- geom_point(shape = 21, colour = "white", size = lineSize, stroke = strokeSize)
+
+dayLabels <- function(x) {
+  labs <- paste(x, ifelse(x == 1, "day", "days"))
+  names(labs) <- x
+  return(labs)
+}
 ```
 
 # Abstract
-The numbers of confirmed cases of SARS-CoV-2 infection are increasing in many places.
+The numbers of confirmed cases of severe acute respiratory syndrome coronavirus 2 (SARS-CoV-2) infection are increasing in many places.
 Consequently, the number of individuals placed into quarantine is increasing too.
-The large number of individuals in quarantine has high societal and economical costs, as well as infringing on the freedom of the individual.
-This has led to a vigorous debate about the duration of quarantine, particularly in light of the potentially low specificity of quarantine (i.e. low probability of quarantined individuals indeed being infected).
-We present a mathematical model that leverages empirically determined distributions of incubation period, infectivity, and generation time to quantify how the duration of quarantine affects transmission.
-With this model we address the impact of shortening the quarantine for returning travellers and traced contacts of confirmed cases, both in terms of prevented transmission and the ratio of prevented transmission to days spent in quarantine.
+The large number of individuals in quarantine has high societal and economical costs.
+There is ongoing debate about the duration of quarantine, particularly since the fraction of individuals in quarantine who eventually test positive is perceived as being low.
+We present a mathematical model that uses empirically determined distributions of incubation period, infectivity, and generation time to quantify how the duration of quarantine affects transmission.
+We use this model to examine two quarantine scenarios: traced contacts of confirmed SARS-CoV-2 cases and returning travellers.
+We quantify the impact of shortening the quarantine duration in terms of prevented transmission and the ratio of prevented transmission to days spent in quarantine.
 We also consider the impact of
 i) test-and-release strategies;
-ii) additional hygiene measures imposed upon release after a negative test;
+ii) reinforced hygiene measures upon release after a negative test;
 iii) the development of symptoms during quarantine;
 iv) the relationship between quarantine duration and adherence;
-and v) the specificity of quarantine.
-When considering the benefit versus cost utility of quarantine, we find that the diminishing impact of longer quarantine on transmission prevention may support a quarantine duration below 10 days, particularly for returning travellers.
-A greater gain of utility can be achieved through a test-and-release strategy, and this can be even further strengthened by imposed hygiene measures post-release.
-We also find that unless a test-and-release strategy is considered, the specificity of quarantine does not affect the optimal duration of quarantine.
-Therefore, the argument that we should shorten quarantine because of lack of specificity is misguided.
+and v) the fraction of individuals in quarantine that are infected.
+When considering the ratio of prevented transmission to days spent in quarantine, we find that the diminishing impact of longer quarantine on transmission prevention may support a quarantine duration below 10 days.
+This ratio can be increased by implementing a test-and-release strategy, and this can be even further strengthened by reinforced hygiene measures post-release.
+We also find that unless a test-and-release strategy is considered, the fraction of individuals in quarantine that are infected does not affect the optimal duration of quarantine under our utility metric.
+Ultimately, we show that there are quarantine strategies based on a test-and-release protocol that, from an epidemiological viewpoint, perform almost as well as the standard 10 day quarantine, but with a lower cost in terms of person days spent in quarantine.
+This applies to both travellers and contacts, but the specifics depend on the context.
 
 # Introduction
-Quarantining individuals with high risk of recent infection is one of the pillars of the non-pharmaceutical interventions to control the ongoing SARS-CoV-2 pandemic.
-Due to the large fraction of pre-symptomatic or asymptomatic transmission
-\citep{ashcroft:SMW:2020,he:NatMed:2020,ferretti:medRxiv:2020,buitrago-garcia:PLOSMedicine:2020}, quarantine can prevent a significant fraction of onward transmission that would not be detectable and is difficult to prevent.
-Indeed, thermal screening at airports allowed more than 50\% of infected travellers to enter the general population \citep{quilty:Eurosurveillance:2020,gostic:eLife:2020}, which could have been prevented by mandatory quarantine.
+Quarantining individuals with high risk of recent infection is one of the pillars of the non-pharmaceutical interventions to control the ongoing severe acute respiratory syndrome coronavirus 2 (SARS-CoV-2) pandemic \citep{kucharski:TheLancetInfectiousDiseases:2020}.
+Owing to the large fraction of transmission of SARS-CoV-2 that is pre-symptomatic or asymptomatic
+\citep{ashcroft:SMW:2020,buitrago-garcia:PLOSMedicine:2020,ferretti:medRxiv:2020,he:NatMed:2020}, quarantine can prevent a substantial fraction of onward transmission that would not be detected otherwise.
+In mathematical modelling studies, it was estimated that thermal screening at airports would allow more than 50\% of infected travellers to enter the general population \citep{quilty:Eurosurveillance:2020,gostic:eLife:2020}, which could have been prevented by mandatory quarantine.
 With the high or increasing case numbers that are observed in many places around the globe, however, more and more people are being placed into quarantine.
-In theory, quarantine periods could be avoided altogether through testing of the high risk individuals, but the low specificity of current testing technology, particularly in early infection \citep{kucirka:AnnalsofInternalMedicine:2020}, as well as limited testing capacity, precludes this approach.
-The high economic and societal costs \citep{nicola:InternationalJournalofSurgery:2020,brooks:TheLancet:2020}, the restrictions of individual freedom \citep{parmet:NEJM:2020} and the often low number of individuals in quarantine that turn out to be infected, have fuelled an active public debate on the appropriate duration of quarantine.
 
-Individuals are generally placed into quarantine for one of two reasons: either they have been identified as a recent close contact of a confirmed case by contact tracing, or they have returned from recent travel to a high-risk area with community transmission \citep{WHO:quarantine}.
-These groups of quarantined individuals differ in two important aspects: compared to traced contacts, travel returners may have lower probability of being infected and have less precise information about the likely time of exposure.
+There is ongoing public debate about the appropriateness of quarantine and its duration.
+Quarantine lowers onward transmission in two ways: first, preventing transmission prior to symptom onset (with the assumption that symptomatic individuals will isolate) and decreasing overall transmission from persistently asymptomatic individuals.
+The appropriate length of quarantine thus depends on both incubation period and the temporal profile of infectiousness.
+In theory, quarantine periods could be avoided altogether through widespread and regular testing programmes, but the low sensitivity of reverse transcriptase PCR (RT-PCR) tests, particularly in early infection \citep{kucirka:AnnalsofInternalMedicine:2020}, and limitations on testing capacity in most countries, preclude this approach.
+Quarantine has high economic, societal and psychological costs \citep{nicola:InternationalJournalofSurgery:2020,brooks:TheLancet:2020}.
+It restricts individual freedoms \citep{parmet:NEJM:2020}, although the level of restriction imposed is generally judged to be proportionate, given the severity of coronavirus disease 2019 (COVID-19).
+The low number of individuals placed in quarantine that turn out to be infected is another argument that is given against quarantine.
+
+Individuals are generally placed into quarantine for one of two reasons: either they have been identified as a recent close contact of a confirmed SARS-CoV-2 case by contact tracing, or they have returned from recent travel to a high-risk area with levels of community transmission that are higher than in the home country \citep{WHO:quarantine}.
+These groups of quarantined individuals differ in two important ways: compared with traced contacts, travel returners may have lower probability of being infected and have less precise information about the likely time of exposure.
 This raises the question whether the duration of quarantine should be the same for these two groups of individuals.
 
-To our knowledge there are no clinical trials published that directly assess impact of duration of quarantine on transmission.
-Therefore we here present a mathematical model that allows quantifying the effects of changing quarantine duration.
-To this end we use the distributions of incubation time (time from infection to onset of symptoms), infectivity (infectiousness as a function of days since symptom onset), and generation time (difference of time points of infection between infector and infectee).
-These distributions have recently been estimated \citep{ferretti:medRxiv:2020} combining multiple transmission pair studies \citep{ferretti:Science:2020,xia:medRxiv:2020,cheng:JAMAInternMed:2020,he:NatMed:2020}.
+To our knowledge there are no clinical trials published that directly assess the impact of duration of quarantine on SARS-CoV-2 transmission \citep{nussbaumer-streit:Cochrane:2020}.
+In this study, we present a mathematical model that allows quantification of the effects of changing quarantine duration.
+We use the distributions of incubation time (time from infection to onset of symptoms), infectivity (infectiousness as a function of days since symptom onset), and generation time (difference of time points of infection between infector and infectee).
+These distributions have been estimated by \citet{ferretti:medRxiv:2020}, combining multiple empirical studies of documented transmission pairs \citep{ferretti:Science:2020,xia:medRxiv:2020,cheng:JAMAInternMed:2020,he:NatMed:2020}.
 
-Using this model, we explore multiple factors that affect the duration of quarantine.
-Specifically we address how test-and-release strategies affect the fraction of transmission prevented by quarantine, taking into account data on the false-negativity rate as a function of days since exposure \citep{kucirka:AnnalsofInternalMedicine:2020} as well as the time delay between test and result.
+Using the model, we explore the effect of duration of quarantine for both traced contacts of confirmed SARS-CoV-2 cases and for returning travellers on the fraction of prevented onward transmission.
+We assess the effects of test-and-release strategies and the time delay between test and result.
 These considerations are particularly important given that multiple testing has been shown to be of little benefit \citep{clifford:medRxiv:2020}.
-We also address the role of presymptomatic patients turning symptomatic and therefore being isolated independent of quarantine.
-Furthermore, as one of the arguments for shortening the duration of quarantine is to increase the number of people complying with the recommendation, we investigate by how much adherence needs to increase to offset the effects of earlier release from quarantine.
-Finally, we assess the role of a mask wearing policy for individuals released early from quarantine.
+We also address the role of pre-symptomatic patients becoming symptomatic and therefore being isolated independent of quarantine.
+Furthermore, as one of the arguments for shortening the duration of quarantine is to increase the number of people complying with the recommendation, we investigate by how much adherence needs to increase to offset the increased transmission due to earlier release from quarantine.
+Finally, we assess the role of reinforced individual-level prevention measures, such as mask wearing, for those released early from quarantine.
 
-Making policy decisions about the duration of quarantine fundamentally requires specifying how the benefits of quarantine relate to its costs.
-Benefits can be measured in terms of the overall reduction of transmission, while both economical, societal and individual costs are likely a function the days spent in quarantine.
-We therefore present results from two perspectives: one purely epidemiological, considering only reduction in transmission, and the other considering the ratio of transmission prevented to the average number of days spent in quarantine.
+Making policy decisions about the duration of quarantine fundamentally requires specifying how the effectiveness of quarantine relates to its costs.
+The effectiveness can be measured in terms of the overall reduction of transmission, while economical, societal, and individual costs are likely a function the days spent in quarantine.
+In addition to the epidemiological outcome, which considers only the reduction in transmission, we also present results based on the ratio of transmission prevented to the average number of days spent in quarantine.
 
 # Methods
 ## Quantifying the benefit of quarantine
 Our primary goal is to quantify how much transmission is prevented by quarantining individuals who have been potentially exposed to SARS-CoV-2.
-To achieve this we need to know the time at which the individual was exposed ($t_E$), as well as when they enter ($t_Q$) and are released from ($t_R$) quarantine (Fig. \ref{fig:timeline}).
-The timing of onward transmission is determined by empirical distributions based on multiple studies of transmission pairs \citep{ferretti:medRxiv:2020}.
-These distributions are:
+To achieve this we need to know the time at which the individual was exposed ($t_E$), as well as when they enter ($t_Q$) and are released from ($t_R$) quarantine (Fig. \ref{fig:timeline}A).
+The timing of onward transmission (Fig. \ref{fig:timeline}B) is determined by:
 the generation time distribution describing the time interval between the infection of an infector and infectee (Fig. \ref{fig:distributions}A);
 the infectivity profile describing the time interval between the onset of symptoms in the infector and infection of the infectee (Fig. \ref{fig:distributions}B);
 and the incubation period distribution describing the time between the infection of an individual and the onset of their symptoms (Fig. \ref{fig:distributions}C).
 A detailed discussion about the relationships between these distributions can be found in \citet{lehtinen:medRxiv:2020}.
 
-```{r timeline, out.width = '\\textwidth', fig.cap = "The timeline of quarantine. Individuals are exposed to an infector at time $t_E$, and then quarantined at time $t_Q$. Under the standard quarantine protocol, this individual is quarantined until time $t_R$, and no onward transmission is assumed to occur during this time. Under the test-and-release protocol, quarantined individuals are tested at time $t_T$ and released at time $t_{R^-}$ if they receive a negative test result. Otherwise the individual remains in quarantine until $t_{R^+}$."}
+```{r timeline-schematic, out.width = '\\textwidth', fig.cap = "A) The timeline of quarantine. Individuals are exposed to an infector at time $t_E$, and then quarantined at time $t_Q$. Under the standard quarantine protocol, this individual is quarantined until time $t_R$, and no onward transmission is assumed to occur during this time. Under the test-and-release protocol, quarantined individuals are tested at time $t_T$ and released at time $t_{R^-}$ if they receive a negative test result. Otherwise the individual is isolated until $t_{R^+}$. B) The timeline of infection. Here we illustrate the relationships between incubation periods, generation time, serial interval, and infection relative to symptom onset for an infector--infectee transmission pair.\\label{fig:timeline}"}
 knitr::include_graphics("timeline.pdf")
 ```
 
@@ -143,41 +161,36 @@ genTime <- data.frame(
   pdf = getGenDist(times = times, params = genParams),
   CDF = getGenDist(times = times, params = genParams, CDF = T)
 )
-#' Function for integrals of p
-getIntegral <- function(upper, lower, tE, params) {
-  getGenDist(times = upper - tE, params = params, CDF = T) -
-    getGenDist(times = lower - tE, params = params, CDF = T)
-}
 ```
 
-```{r distributions, fig.width = 7, fig.height = 2.5, fig.cap = "A) The generation time distribution [$q(t)$] follows a Weibull distribution \\citep{ferretti:medRxiv:2020}. B) The infectivity profile follows a shifted Student's t distribution \\citep{ferretti:medRxiv:2020}. C) The distribution of incubation times follows a log-normal distribution \\citep{li:NEJM:2020}.\\label{fig:distributions}"}
+```{r distributions, fig.width = 7, fig.height = 2.5, fig.cap = "A) The generation time distribution [$q(t)$] follows a Weibull distribution \\citep{ferretti:medRxiv:2020}. B) The infectivity profile follows a shifted Student's \\emph{t}-distribution \\citep{ferretti:medRxiv:2020}. C) The distribution of incubation times follows a log-normal distribution \\citep{li:NEJM:2020}.\\label{fig:distributions}"}
 #' Plot the three distributions together
 yLim <- c(0,0.22)
 labY <- 0.21 
 
+
 plot_grid(
-  #' Generation time
   ggplot(genTime, aes(x = t, y = pdf)) +
-    geom_vline(xintercept = genParams$mean, linetype = "dashed", alpha = 0.5) +
+    geom_vline(xintercept = genParams$mean, linetype = "dashed", colour = "darkgrey") +
     annotate("text", label = paste0(" mean = ", round(genParams$mean, 1), " days"), size = theme_get()$text[["size"]]/4, x = genParams$mean, y = labY, hjust = 0, vjust = 0) +
     geom_line() +
     coord_cartesian(ylim = yLim) +
     labs(x = "generation time", y = "probability density") +
     ggtitle("generation time dist.") +
     plotTheme + theme(plot.title = element_text(size = plotTheme$text$size, hjust = 0.5)),
-  #' Infectivity profile
+  
   ggplot(infProf, aes(x = t, y = pdf)) +
     #geom_vline(xintercept = 0, colour = "darkgrey") +
-    geom_vline(xintercept = infParams$mean, linetype = "dashed", alpha = 0.5) +
+    geom_vline(xintercept = infParams$mean, linetype = "dashed", colour = "darkgrey") +
     annotate("text", label = paste0(" mean = ", round(infParams$mean, 1), " days"), size = theme_get()$text[["size"]]/4, x = infParams$mean, y = labY, hjust = 0, vjust = 0) +
     geom_line() +
     coord_cartesian(ylim = yLim) +
     labs(x = "days post symptoms", y = "probability density") +
     ggtitle("infectivity profile") +
     plotTheme + theme(plot.title = element_text(size = plotTheme$text$size, hjust = 0.5)),
-  #' Incunation distribution
+  
   ggplot(incDist, aes(x = time, y = pdf)) +
-    geom_vline(xintercept = incParams$mean, linetype = "dashed", alpha = 0.5) +
+    geom_vline(xintercept = incParams$mean, linetype = "dashed", colour = "darkgrey") +
     annotate("text", label = paste0(" mean = ", round(incParams$mean, 1), " days"), size = theme_get()$text[["size"]]/4, x = incParams$mean, y = labY, hjust = 0, vjust = 0) +
     geom_line() +
     coord_cartesian(ylim = yLim) +
@@ -189,294 +202,402 @@ plot_grid(
 )
 ```
 
-Ultimately, the fraction of transmission prevented by the quarantine of an infected individual is the area under the generation time distribution $q(t)$ [Fig. \ref{fig:distributions}C] (or alternatively under the infectivity profile, Fig. \ref{fig:distributions}B) between the times at which the individual enters and leaves quarantine \citep{grantz:medRxiv:2020}.
+Ultimately, the fraction of transmission prevented by the quarantine of an infected individual is the area under the generation time distribution $q(t)$ [Fig. \ref{fig:distributions}A] (or alternatively under the infectivity profile, Fig. \ref{fig:distributions}B) between the times at which the individual enters and leaves quarantine \citep{grantz:medRxiv:2020}.
 Here we use the generation time distribution, such that the fraction of transmission prevented is
 \begin{equation}
 F = \int_{t_Q}^{t_R} {\rm d}t' \, q(t' - t_E).
 \label{eq:area}
 \end{equation}
 
-## Specificity of quarantine
+```{r getIntegral}
+#' Function for integrals of q
+getIntegral <- function(upper, lower, tE, params) {
+  getGenDist(times = upper - tE, params = params, CDF = T) -
+    getGenDist(times = lower - tE, params = params, CDF = T)
+}
+```
+
+## Traced contacts versus returning travellers
+We consider the scenarios of a traced contact and a returning traveller differently, because the values of $t_E$, $t_Q$, and $t_R$ are implemented differently in each case.
+
+### Traced contacts
+Following a positive test result, a confirmed index case has their recent close contacts traced.
+From contact tracing interviews, we know when these traced contacts were last exposed to the index case ($t_E$) relative to the symptom onset of the index case ($t=0$).
+The contacts are then placed into quarantine at time $t_Q = \Delta_Q$, where $\Delta_Q$ is the sum of the delay to the index case receiving a positive test result after developing symptoms and the further delay to tracing the contacts.
+Under the standard quarantine procedure, the traced contacts are quarantined until day $t_R = t_E + n$, i.e. they are quarantined until $n$ days after their last exposure.
+Note that the time spent in quarantine is $t_E + n - \Delta_Q$, which is shorter than $n$.
+
+### Returning travellers
+Unlike our traced contacts, we do not know when travellers were (potentially) exposed.
+This means that quarantine starts from the date that they return ($t_Q=0$) and lasts for $n$ days until time $t_R=n$.
+For simplicity, we assume a traveller was infected at some time over a multi-day travel period $-y \le t_E \le 0$, where $y$ is the duration of travel.
+For each exposure time $t_E$, we compute the fraction of \emph{local} transmission that would be prevented by quarantine and then compute the average over the travel duration:
+\begin{equation}
+F_{\rm local}(n) = \langle F(n)/F(\infty) \rangle_y,
+\label{eq:Flocal}
+\end{equation}
+where $F(n)$ is given by Eq. \eqref{eq:area} and $\langle \cdot \rangle_y$ represents the average over the different exposure times $-y \le t_E \le 0$.
+
+## Fraction of individuals in quarantine that are infected
+Quarantine is applied pre-emptively, such that we do not know the infection status of individuals when they enter quarantine.
 If only a fraction $s$ of the individuals placed in quarantine are infected, then the average reduction in transmission across all individuals in quarantine is $sF$.
-We refer to $s$ as the specificity of quarantine.
 
 ## Test-and-release
-A further quarantine strategy is to prematurely release individuals who produce a negative test result during the quarantine.
-As illustrated in Fig. \ref{fig:timeline}, a test is issued at time $t_T > t_Q$.
+The test-and-release strategy uses virological testing during quarantine to release individuals with a negative test result and to place those with a positive test result into isolation.
+As illustrated in Fig. \ref{fig:timeline}A, a test is issued at time $t_T \ge t_Q$.
 If the test is negative, the individual is released when the test result arrives at time $t_{R^-}$.
-Otherwise, the individual remains in quarantine until time $t_{R^+}$.
-One problem with this strategy is the high probability of a false-negative test result (i.e. an infected individual is prematurely released into the population).
-As reported in \citet{kucirka:AnnalsofInternalMedicine:2020}, the false-negative rate is 100\% on days 0 and 1 post infection, falling to 67\% (day 4), 38\% (day 5), 25\% (day 6), 21\% (day 7), 20\% (day 8), and 21\% (day 9), before rising to 66\% on day 21.
+Otherwise, the individual remains in isolation until time $t_{R^+}$.
+One challenge with this strategy is the high probability of a false-negative RT-PCR test result (i.e. an infected individual is prematurely released into the community).
+As reported by \citet{kucirka:AnnalsofInternalMedicine:2020}, the false-negative rate is 100\% on days 0 and 1 post infection, falling to 67\% (day 4), 38\% (day 5), 25\% (day 6), 21\% (day 7), 20\% (day 8), and 21\% (day 9), before rising to 66\% on day 21.
 We label this function $f(x)$, the false-negative probability on day $x$ after infection.
-The fraction of transmission prevented by quarantine under the test and release strategy is:
+The fraction of transmission prevented by quarantine under the test-and-release strategy is:
 \begin{equation}
 F_{\rm test} = \int_{t_Q}^{t_{R^-}} {\rm d}t' \, q(t' - t_E) + \bigl[1-f(t_T - t_E)\bigr] \int_{t_{R^-}}^{t_{R^+}} {\rm d}t' \, q(t' - t_E),
 \label{eq:test}
 \end{equation}
 where the first term captures that all individuals are quarantined until at least the test result day $t_{R^-}$, and the second term accounts for transmission prevented by remaining in quarantine until $t_{R^+}$ following a positive test.
-Again expression \eqref{eq:test} is conditional on the quarantined individual being infected, and the average effect across all quarantined individuals is $s F_{\rm test}$ for specificity $s$.
+Again Eq. \eqref{eq:test} is conditional on the quarantined individual being infected, and the average effect across all quarantined individuals is $s F_{\rm test}$, where $s$ is the fraction of individuals in quarantine that are infected.
 
-```{r, falseNeg, include = F}
+```{r falseNeg, include = F}
 #' False negative probabilities
 falseNeg <- approxfun(x = c(0,1,4,5,6,7,8,9,21), y = c(1,1,0.67,0.38,0.25,0.21,0.20,0.21,0.66))
 ```
 
-## Reduced quarantine
-We further consider the possibility of a reduced quarantine, where individuals released after a negative test are asked to maintain strict hygiene, mask wearing, and social distancing protocols until $t_{R^+}$.
-We assume transmission is reduced by a fraction $r$ due to these protocols, and hence the onward transmission prevented by quarantining an infected individual is
+## Reinforced prevention measures after early release
+We further consider the possibility that individuals released after a negative test are asked to strengthen strict hygiene, mask wearing, and social distancing protocols until $t_{R^+}$.
+We assume that these practices reduce transmission by a fraction $r$, such that the onward transmission prevented by quarantining an infected individual is
 \begin{equation}
 F_{\rm reduced} = F_{\rm test} + r f(t_T - t_E) \int_{t_{R^-}}^{t_{R^+}} {\rm d}t' \, q(t' - t_E),
 \label{eq:reduced}
 \end{equation}
-where the extra term is the transmission prevented by the reduced quarantine when an infected individual is prematurely released from quarantine.
+where the extra term is the transmission prevented by the reinforced prevention measures when an infected individual is prematurely released from quarantine.
 
-## Traced contacts versus travellers
-We consider the scenarios of a traced contact and a returning traveller differently, because the values of $t_E$, $t_Q$, and $t_R$ are implemented differently in each case.
-
-## Cost--benefit analysis
-An important metric that we consider is the utility of a strategy, which compares the usefulness of quarantine (overall transmission prevented) to the number of person days spent in quarantine.
-For an efficacy $F$, specificity $s$, and average time spent in quarantine $T$, we define the utility as
+## Transmission reduction versus days spent in quarantine
+One possible metric to relate the effectiveness of quarantine to its negative impact on society is to consider the ratio between the amount of overall transmission prevented and the number of person days spent in quarantine.
+We refer to this ratio as the utility of quarantine.
+Concretely, for an efficacy $F$, fraction of individuals in quarantine that are infected $s$, and average time spent in quarantine $T$, we define the utility as
 \begin{equation}
 U = \frac{s F}{T}.
 \label{eq:utility}
 \end{equation}
-Note that this is only one possible definition of utility and defining the appropriate function is ultimately a policy question.
+
+```{r utility-function, include = F}
+#' Utility function definition
+getUtility <- function(s = 1, efficacy, time) {
+  s * efficacy / time
+}
+```
+
+## Adherence to quarantine
+For a quarantine duration of $n$ days, a fraction $\alpha(n)$ of individuals will adhere to the strategy, while a fraction $1-\alpha(n)$ will ignore the guideline.
+The fraction of transmission prevented due to quarantine is $s \alpha(n) F(n)$.
+Again $s$ is the fraction of individuals in quarantine that are infected, which we assume is independent of $n$.
+We expect $\alpha(n)$ to be a decreasing function of $n$, i.e. longer quarantines have a lower adherence.
+For two quarantine strategies with durations $n$ and $n'$ to have the same overall efficacy, the adherences must satisfy $s \alpha(n) F(n) = s \alpha(n') F(n')$, or
+\begin{equation}
+\frac{\alpha(n')}{\alpha(n)} = \frac{F(n)}{F(n')}.
+\label{eq:adherence}
+\end{equation}
+In other words, the change in the fraction of transmission prevented by quarantine must be compensated by an inverse change in the adherence.
+Unless otherwise stated, we assume 100\% adherence.
+
+## Persistently asymptomatic infections
+If an individual develops symptoms and ultimately tests positive while in quarantine, we can remove them from the population as they would have to isolate themselves.
+Importantly, this individual would be removed from the population regardless of quarantine, so the reduction of cases due to their isolation should not be counted towards the efficacy of quarantine.
+
+Let $a$ be the fraction of asymptomatic cases, who will be quarantined using the standard strategy from time $t_Q$ until $t_R$.
+We assume that the symptomatic cases would anyway be isolated once they develop symptoms (at time $t_S$ as described by the incubation period distribution, Fig. \ref{fig:distributions}C), so these individuals are effectively quarantined until $\min(t_R,t_S)$.
+We further assume equal transmissibility of persistently asymptomatic and symptomatic infections and that both are described by the same generation time distribution.
+This assumption might be an overestimate as onward transmission from persistently asymptomatic cases is less than onward transmission from symptomatic cases \citep{buitrago-garcia:PLOSMedicine:2020}.
+For each traced contact who is put into quarantine, the fraction of infections that would be prevented by quarantine is
+\begin{equation}
+F(n,a) = a \int_{t_Q}^{t_R} {\rm d}t' \, q(t' - t_E) +
+(1-a) \int_{t_Q}^{\min(t_R,t_S)} {\rm d}t' \, q(t' - t_E).
+\label{eq:asymptomatic}
+\end{equation}
+Unless otherwise stated, we assume $a=1$.
+
+## Interactive app
+To complement the results in this manuscript, and to allow readers to investigate different quarantine scenarios, we have developed an online interactive application.
+This can be found on the \emph{CH Covid-19 Dashboard} at \url{https://ibz-shiny.ethz.ch/covidDashboard/}.
+
 
 # Results
-## Quarantining traced contacts
-Following a positive test result, a confirmed index case has their recent close contacts traced.
-From contact tracing interviews, we know when these traced contacts were last exposed to the index case ($t_E$) relative to the symptom onset of the index case ($t=0$).
-The contacts are then placed into quarantine at time $t_Q = \Delta_Q$, where $\Delta_Q$ is the sum of the delay to the index case receiving a positive test result after developing symptoms and the further delay to tracing the contacts.
-Under the standard quarantine procedure, the traced contacts are quarantined until day $t_R = t_E + n$, i.e. they are quarantined until $n$ days after there last exposure.
-Note that the time spent in quarantine is $t_E + n - \Delta_Q$, which is shorter than $n$.
-
-The expected onward transmission (from an infected contact) that is prevented by quarantine [Eq. \eqref{eq:area} and Fig. \ref{fig:contacts:quarantine}A] shows the diminishing return of increasing the quarantine duration.
-Furthermore, as the time delay to quarantine ($\Delta_Q$) increases, the maximum efficacy of quarantine is reduced (because infected contacts have already transmitted more before being quarantined).
-If the duration of quarantine is already long (say, 10 days), then little can be gained in terms of prevention by quarantining for longer, but reducing the delay to starting quarantine does lead to increased efficacy.
-A final -- though obvious -- point to note, is that any shortening of a traced contact's quarantine duration reduces the efficacy of quarantining that individual.
+## Quarantining traced contacts of confirmed SARS-CoV-2 cases
+Any shortening of a traced contact's quarantine duration will lead to an increase in transmission from that individual, but the degree of increase depends on the extent of the shortening.
+The expected onward transmission (from an infected contact) that is prevented by quarantine [$F$; Eq. \eqref{eq:area}] shows the diminishing return of increasing the quarantine duration (Fig. \ref{fig:contacts:quarantine}A).
+Furthermore, as the time delay to quarantine ($\Delta_Q$) increases, the maximum efficacy of quarantine is reduced (because infected contacts have already transmitted before being quarantined).
+If the duration of quarantine is longer than 10 days, then little can be gained in terms of prevention by quarantining for longer, but reducing the delay to starting quarantine does lead to increased efficacy.
 
 ```{r contacts-quarantine, fig.width = 8, fig.cap = "A) The fraction of total onward transmission per quarantined infected contact that is prevented by quarantine [Eq. \\eqref{eq:area}]. B) The relative utility of different quarantine durations (x-axis) compared to $n=10$ days, i.e. $U(n')/U(10)$ [utility as defined Eq. \\eqref{eq:contacts:quarantineUtility}]. Colours represent the delay to starting quarantine, $\\Delta_Q$. We use $t_E = 0$, which from the infectivity profile is the mean infection time of contacts if the index case develops symptoms at $t=0$.\\label{fig:contacts:quarantine}"}
 #' Fraction of contacts that occur between \Delta_Q and n (duration of quarantine)
 tE <- 0
 nCompare <- 10
+
 DeltaQ.vals <- seq(0,4)
 n.vals <- seq(0,15)
 
-labs <- paste(DeltaQ.vals, ifelse(DeltaQ.vals == 1, "day", "days"))
-names(labs) <- DeltaQ.vals
-colours <- scale_colour_viridis_d(option = "inferno", end = 0.9, aesthetics = c("colour","fill"), name = "delay to\nquarantine", labels = labs)
+colours <- scale_colour_viridis_d(
+  option = "inferno", end = 0.9, name = expression("delay to quarantine" ~ (Delta[Q])),
+  aesthetics = c("colour","fill"), labels = dayLabels(DeltaQ.vals),
+  guide = guide_legend(title.position = "left", title.hjust = 0.5, nrow = 1))
 
 frac <- lapply(DeltaQ.vals, function(DeltaQ) {
   n <- n.vals[n.vals > DeltaQ]
-  frac <- getIntegral(upper = tE + n, lower = DeltaQ, tE = tE, params = genParams)
   data.frame(
     DeltaQ = factor(DeltaQ, levels = DeltaQ.vals),
     n = n,
-    fraction = frac
+    fraction = getIntegral(upper = tE + n, lower = DeltaQ, tE = tE, params = genParams)
   )
 })
 frac <- do.call(rbind, frac)
 #' Plot
-
-fracPlot <- ggplot(frac, aes(x = n, y = fraction, colour = DeltaQ)) +
-  geom_line() +
-  geom_point() +
+fracPlot <- ggplot(frac, aes(x = n, y = fraction, colour = DeltaQ, fill = DeltaQ)) +
+  geom_line(size = lineSize) +
+  my_geom_point +
   scale_x_continuous(limits = c(0,15)) +
   scale_y_continuous(limits = c(0,1), labels = scales::percent) +
   colours +
   labs(x = "quarantine duration (days)", y = "fraction of transmission\nprevented by quarantine") +
-  plotTheme + theme(legend.position = c(0.8,0.35), legend.background = element_blank(), legend.key.height = unit(0.5,"cm"))
+  plotTheme + theme(legend.box.background = element_rect(colour = "black"))
+legend <- get_legend(fracPlot)
+fracPlot <- fracPlot + theme(legend.position = "None")
 
 #' Relative utility of strategy n' compared to n=10
 relUtility <- lapply(DeltaQ.vals, function(DeltaQ) {
   nPrime <- n.vals[n.vals > DeltaQ]
-  relUtility <- ( getIntegral(upper = tE + nPrime, lower = DeltaQ, tE = tE, params = genParams)/(tE + nPrime - DeltaQ) ) /
-    ( getIntegral(upper = tE + nCompare, lower = DeltaQ, tE = tE, params = genParams)/(tE + nCompare - DeltaQ) )
+  utility.nPrime <- getUtility(efficacy = getIntegral(upper = tE + nPrime, lower = DeltaQ, tE = tE, params = genParams), time = tE + nPrime - DeltaQ)
+  utility.nCompare <- getUtility(efficacy = getIntegral(upper = tE + nCompare, lower = DeltaQ, tE = tE, params = genParams), time = tE + nCompare - DeltaQ)
   data.frame(
     DeltaQ = factor(DeltaQ, levels = DeltaQ.vals),
     n = nPrime,
-    relUtility = relUtility
+    relUtility = utility.nPrime / utility.nCompare
   )
 })
 relUtility <- do.call(rbind, relUtility)
+
 #' Plot
-utilityPlot <- ggplot(relUtility, aes(x = n, y = relUtility, colour = DeltaQ)) + 
-  geom_hline(yintercept = 1, color = "darkgrey", size = 1.2) +
-  geom_vline(xintercept = nCompare, color = "darkgrey", size = 1.2) +
-  geom_line() +
-  geom_point() +
+utilityPlot <- ggplot(relUtility, aes(x = n, y = relUtility, colour = DeltaQ, fill = DeltaQ)) + 
+  geom_hline(yintercept = 1, color = "darkgrey", size = lineSize) +
+  geom_vline(xintercept = nCompare, color = "darkgrey", size = lineSize) +
+  geom_line(size = lineSize) +
+  my_geom_point +
   scale_x_continuous(limits = c(0,15)) +
-  #scale_y_continuous(limits = c(0,1), labels = scales::percent) +
   colours +
-  labs(x = "quarantine duration (days)", y = "relative utility of quarantine") +
+  labs(x = "quarantine duration (days)", y = "\nrelative utility of quarantine") +
   plotTheme + theme(legend.position = "None")
+
 #' Plot together
-plot_grid(fracPlot, utilityPlot, nrow = 1, axis = "tb", align = "hv", labels = "AUTO")
+plot_grid(
+  plot_grid(fracPlot, utilityPlot, nrow = 1, axis = "tb", align = "hv", labels = "AUTO"),
+  legend, ncol = 1, rel_heights = c(1,0.2)
+)
 ```
 
 Note that we have assumed that the contact was infected at the last time of exposure.
 If there have been multiple contacts between them and the index case, then transmission may have occurred earlier and we would overestimate the efficacy of quarantine.
 
-The efficacy shown in Fig. \ref{fig:contacts:quarantine}A describes only the epidemiological benefit of quarantining infected individuals.
-However, quarantine also comes at a cost in terms of days spent in confinement.
-The utility of this quarantine strategy, as defined in Eq. \eqref{eq:utility}, is
+The utility of the quarantine strategy, as defined in Eq. \eqref{eq:utility}, is
 \begin{equation}
 U(n) = \frac{s F(n)}{t_E + n - \Delta_Q},
 \label{eq:contacts:quarantineUtility}
 \end{equation}
-which depends on the specificity $s$.
-However, comparing two different strategies $n$ and $n'$ through their relative utility, i.e. $U(n')/U(n)$, eliminates this dependence on $s$.
-Therefore, the argument that we should shorten quarantine because of lack of specificity is misguided.
-By calculating the relative utility we observe that there exists an optimal strategy which maximises the benefit/cost ratio (Fig. \ref{fig:contacts:quarantine}B).
+which depends on the fraction of individuals in quarantine that are infected, $s$.
+However, comparing two different quarantine durations $n$ and $n'$ through their relative utility, i.e. $U(n')/U(n)$, eliminates this dependence on $s$.
+Therefore, the argument that we should shorten quarantine because of the low probability of quarantined individuals being infected is misguided in this situation.
+By calculating the relative utility, we observe that there is an optimal strategy which maximises the ratio between the fraction of transmission prevented and the number of days spent in quarantine (Fig. \ref{fig:contacts:quarantine}B).
 This would be a duration of six to eight days, depending on the delay to starting quarantine $\Delta_Q$.
 
 
-### Testing and releasing
-We consider a test-and-release strategy where quarantined individuals are tested $x$ days after exposure and released if the test result is negative.
+### Test-and-release strategy
+Quarantined individuals are tested $x$ days after exposure and released if the test result is negative.
 As above, quarantine begins at time $t_Q = \Delta_Q$.
 The test is conducted at $t_T = t_E + x$, and the result is received after a delay $\Delta_T$ at time $t_{R^-} = t_T + \Delta_T$.
 Individuals with a negative test result are released, otherwise they remain in quarantine until time $t_{R^+} = t_E + n$.
+We here assume that $n$ is large enough such that negligible transmission would occur after this period.
 
-The fraction of infections prevented by quarantining an infected traced contact under the test-and-release strategy [$F_{\rm test}$; Eq. \eqref{eq:test}] is always less than the fraction of transmission prevented by standard quarantine of the same duration (Fig. \ref{fig:contacts:test}A).
-This is due to the considerable chance of prematurely releasing an infectious individual because of a false-negative test result.
-The deficiency of the test-and-release strategy decreases if we test later in quarantine, because we not only increase the duration of quarantine but also reduce the false-negative probability.
+For $n=10$, $\Delta_Q=3$, and $t_E=0$, standard quarantine (without testing) would prevent 90.2\% of onward transmission from an infected traced contact.
+This represents the maximum attainable efficacy: the onward transmission prevented under a test-and-release strategy will always be below this level (Fig. \ref{fig:contacts:test}A).
+This is because of the chance of prematurely releasing an infectious individual who received a false-negative test result.
+On the other hand, the test-and-release strategy always performs better than not testing if the release time is the same as the quarantine duration (grey line in Fig. \ref{fig:contacts:test}A).
+Hence, these scenarios provide upper and lower bounds for the efficacy of the test-and-release strategy.
+The efficacy of the test-and-release strategy increases if we test later in quarantine, because we not only increase the duration of quarantine but also reduce the false-negative probability.
 
-```{r contacts-test, fig.width = 8, fig.cap = "A) The impact of the test-and-release quarantine strategy, in terms of what fraction of total onward transmission per infected traced contact is prevented by quarantine [$F_{\\rm test}$; Eq. \\eqref{eq:test}]. The dashed line shows the result of standard quarantine without testing [$F$; Eq. \\eqref{eq:area}]. B) The relative utility of different test-and-release quarantine durations compared to standard quarantine with duration $n=10$ days, i.e. $U_{\\rm test}(n',x)/U(10)$ [Eq. \\eqref{eq:contacts:testUtility}]. We use $t_E = 0$, which from the infectivity profile is the mean infection time of contacts if the index case develops symptoms at $t=0$, and $\\Delta_Q=3$ as the delay until quarantine begins. Individuals are tested on day $x$ after exposure (colour) and released on day $x+2$ if negative (we assume it takes $\\Delta_T=2$ days to receive a test result). We assume a specificity of $s=0.1$ and that there are no false-positive test results. Dotted lines in both panels assume the released individuals have a 50\\% reduced transmission ($r = 0.5$) due to extra hygiene and social distancing measures imposed by reduced quarantine [Eq. \\eqref{eq:reduced}].\\label{fig:contacts:test}"}
+Current laboratory-based RT-PCR tests have a median turnaround of 24-48 hours.
+This delay is primarily operational, and so could be reduced by increasing test throughput.
+There are more rapid antigen-detection tests which can provide same day results, but with lower sensitivity and specificity compared to RT-PCR tests \citep{guglielmi:Nature:2020}.
+Here we assume that tests have the same sensitivity and specificity regardless of the delay to result.
+Comparing to a test with delay $\Delta_T=2$ days, we observe that using a rapid test ($\Delta_T = 0$) can reduce the quarantine duration of individuals with a negative test result by one day while maintaining the same efficacy (Fig. \ref{fig:contacts:test}A): the extra accuracy gained by waiting one extra day until testing balances the increased transmission caused by reducing the duration.
+E.g., a rapid test on day six has roughly the same efficacy (80.5\%) as testing on day five and releasing on day seven (82.4\%), while shortening the quarantine duration of individuals with a negative test result from seven to six days.
+
+```{r contacts-test, fig.width = 8, fig.cap = "A) The impact of the test-and-release quarantine strategy, in terms of what fraction of total onward transmission per infected traced contact is prevented by quarantine [$F_{\\rm test}$; Eq. \\eqref{eq:test}]. The grey lines represent the upper and lower bounds for the fraction of transmission that can be prevented by quarantine without testing [$F$; Eq. \\eqref{eq:area}]. B) The relative utility of different test-and-release quarantine durations compared to standard quarantine with duration $n=10$ days, i.e. $U_{\\rm test}(n',x)/U(10)$ [Eq. \\eqref{eq:contacts:testUtility}]. The grey curve is the relative utility of standard quarantine without testing. In both panels we use $t_E = 0$, which from the infectivity profile is the mean infection time of contacts if the index case develops symptoms at $t=0$, and $\\Delta_Q=3$ as the delay until quarantine begins. Individuals are tested on day $t_T = x$ after exposure and released on day $x+\\Delta_T$ (x-axis) if negative (colour corresponds to $\\Delta_T$). Positive testing individuals are released at day $n'=10$. We assume that the fraction of individuals in quarantine that are infected is $s=0.1$, and that there are no false-positive test results. Dashed lines in both panels assume the released individuals have a 50\\% reduced transmission ($r = 0.5$) due to reinforced hygiene and social distancing measures [Eq. \\eqref{eq:reduced}].\\label{fig:contacts:test}"}
 #' Fraction of tertiary contacts that occur in quarantine
 DeltaQ <- 3
-DeltaT <- 2
 tE <- 0
 s <- 0.1
 r <- 0.5
-nCompare <- 10
-n.vals <- seq(0,15)
-x.vals <- seq(DeltaQ - tE,8)
+n <- 10
 
-colours <- scale_colour_viridis_d(option = "inferno", direction = -1, end = 0.9, aesthetics = c("colour","fill"), name = "day of test")
+DeltaT.vals <- c(0,1,2,3)
+x.vals <- seq(DeltaQ, 10)
+
+colours <- scale_colour_viridis_d(
+  option = "viridis", direction = -1, end = 0.9,
+  name = expression("test result delay " ~ (Delta[T])),
+  labels = dayLabels(DeltaT.vals), aesthetics = c("colour","fill"),
+  guide = guide_legend(title.position = "left", title.hjust = 0.5, nrow = 1))
+
+#' Maximum preventable fraction of transmission
+maxPreventable <- getIntegral(upper = Inf, lower = DeltaQ, tE = tE, params = genParams)
 
 #' Fraction using normal strategy
 fracNoTest <- data.frame(
-  n = n.vals[n.vals > DeltaQ],
-  fraction  = getIntegral(upper = tE + n.vals[n.vals > DeltaQ], lower = DeltaQ, tE = tE, params = genParams)
+  DeltaT = NA,
+  x = NA,
+  release = x.vals,
+  fraction = getIntegral(upper = tE + x.vals, lower = DeltaQ, tE = tE, params = genParams)
 )
 
 #' Fraction based on test and release
-frac <- lapply(x.vals, function(x) {
-  nPrime <- n.vals[n.vals >= x + DeltaT]
-  frac <- getIntegral(upper = tE + x + DeltaT, lower = DeltaQ, tE = tE, params = genParams) +
-    (1 - falseNeg(x - tE)) * getIntegral(upper = tE + nPrime, lower = tE + x + DeltaT, tE = tE, params = genParams)
+fracTest <- lapply(x.vals, function(x) {
+  fraction <- getIntegral(upper = tE + x + DeltaT.vals, lower = DeltaQ, tE = tE, params = genParams) +
+    (1 - falseNeg(x)) * getIntegral(upper = tE + n, lower = tE + x + DeltaT.vals, tE = tE, params = genParams)
   data.frame(
-    x = factor(x, levels = x.vals),
-    n = nPrime,
-    fraction = frac
+    DeltaT = factor(DeltaT.vals),
+    x = x,
+    release = x + DeltaT.vals,
+    fraction = fraction
   )
 })
-frac <- do.call(rbind, frac)
+fracTest <- do.call(rbind, fracTest)
 
 #' Fraction with reduced post-quarantine transmission
 fracReduced <- lapply(x.vals, function(x) {
-  nPrime <- n.vals[n.vals >= x + DeltaT]
-  frac <- getIntegral(upper = tE + x + DeltaT, lower = DeltaQ, tE = tE, params = genParams) +
-    (1 - falseNeg(x - tE) + r * falseNeg(x - tE)) * getIntegral(upper = tE + nPrime, lower = tE + x + DeltaT, tE = tE, params = genParams)
+  fraction <- getIntegral(upper = tE + x + DeltaT.vals, lower = DeltaQ, tE = tE, params = genParams) +
+    (1 - falseNeg(x) + r * falseNeg(x)) * getIntegral(upper = tE + n, lower = tE + x + DeltaT.vals, tE = tE, params = genParams)
   data.frame(
-    x = factor(x, levels = x.vals),
-    n = nPrime,
-    fraction = frac
+    DeltaT = factor(DeltaT.vals),
+    x = x,
+    release = x + DeltaT.vals,
+    fraction = fraction
   )
 })
 fracReduced <- do.call(rbind, fracReduced)
 
 #' Plot
-fracPlot <- ggplot(frac, aes(x = n, y = fraction, colour = x)) +
-  geom_line(data = fracNoTest, colour = "black", linetype = "dashed") +
-  geom_line(data = fracReduced, linetype = "dotted") +
-  geom_line() +
-  geom_point() +
-  coord_cartesian(xlim = c(0,15)) +
+fracPlot <- ggplot(fracTest, aes(x = release, y = fraction, colour = DeltaT, fill = DeltaT)) +
+  geom_hline(yintercept = maxPreventable, colour = "darkgrey", size = lineSize) +
+  geom_line(data = fracNoTest, colour = "darkgrey", size = lineSize) +
+  geom_line(data = fracReduced, linetype = "dashed", size = 0.7) +
+  geom_line(size = lineSize) +
+  my_geom_point +
+  scale_x_continuous(limits = c(0,10), breaks = seq(0,10,2)) +
   scale_y_continuous(limits = c(0,1), labels = scales::percent) +
   colours +
-  labs(x = "quarantine duration (days)", y = "fraction of transmission\nprevented by quarantine") +
-  plotTheme + theme(legend.position = "None")
+  labs(x = expression("day of release" ~ (t[T]+Delta[T])), y = "fraction of transmission\nprevented by quarantine") +
+  plotTheme + theme(legend.box.background = element_rect(colour = "black"))
+legend <- get_legend(fracPlot)
+fracPlot <- fracPlot + theme(legend.position = "None")
 
 
-#' Relative utility of test and release strategy n' compared to n=10
-relUtility <- lapply(x.vals, function(x) {
-  nPrime <- n.vals[n.vals >= x + DeltaT]
-  relUtility <- ( (getIntegral(upper = tE + x + DeltaT, lower = DeltaQ, tE = tE, params = genParams) + (1 - falseNeg(x - tE)) * getIntegral(upper = tE + nPrime, lower = tE + x + DeltaT, tE = tE, params = genParams))/(tE + x + DeltaT - DeltaQ + s*(1 - falseNeg(x - tE)) * (nPrime - x - DeltaT)) )/
-    ( getIntegral(upper = tE + nCompare, lower = DeltaQ, tE = tE, params = genParams)/(tE + nCompare - DeltaQ) )
+#' Utility without testing
+utilityNoTest <- getUtility(s = s,
+                            efficacy = getIntegral(upper = tE + n, lower = DeltaQ, tE = tE, params = genParams),
+                            time = tE + n - DeltaQ)
+
+#' Relative utility of standard quarantine
+relUtilityNoTest <- lapply(x.vals, function(x) {
+  utility <- getUtility(s = s,
+                        efficacy = getIntegral(upper = tE + x, lower = DeltaQ, tE = tE, params = genParams),
+                        time = tE + x - DeltaQ)
   data.frame(
-    x = factor(x, levels = x.vals),
-    n = nPrime,
-    relUtility = relUtility
+    DeltaT = NA,
+    x = NA,
+    release = x,
+    relUtility = utility / utilityNoTest
   )
 })
-relUtility <- do.call(rbind, relUtility)
+relUtilityNoTest <- do.call(rbind, relUtilityNoTest)
+
+#' Relative utility of test-and-release strategy compared to standard
+relUtilityTest <- lapply(x.vals, function(x) {
+  utility <- getUtility(s = s,
+                        efficacy = getIntegral(upper = tE + x + DeltaT.vals, lower = DeltaQ, tE = tE, params = genParams) +
+                          (1 - falseNeg(x)) * getIntegral(upper = tE + n, lower = tE + x + DeltaT.vals, tE = tE, params = genParams),
+                        time = tE + x + DeltaT.vals - DeltaQ + s * (1 - falseNeg(x)) * (n - x - DeltaT.vals))
+  data.frame(
+    DeltaT = factor(DeltaT.vals),
+    x = x,
+    release = x + DeltaT.vals,
+    relUtility = utility / utilityNoTest
+  )
+})
+relUtilityTest <- do.call(rbind, relUtilityTest)
 
 #' Relative utility of test and release with reduced post-quarantine transmission
 relUtilityReduced <- lapply(x.vals, function(x) {
-  nPrime <- n.vals[n.vals >= x + 2]
-  relUtility <- ( (getIntegral(upper = tE + x + DeltaT, lower = DeltaQ, tE = tE, params = genParams) + (1 - falseNeg(x - tE) + r * falseNeg(x - tE)) * getIntegral(upper = tE + nPrime, lower = tE + x + DeltaT, tE = tE, params = genParams))/(tE + x + DeltaT - DeltaQ + s*(1 - falseNeg(x - tE)) * (nPrime - x - DeltaT)) )/
-    ( getIntegral(upper = tE + nCompare, lower = DeltaQ, tE = tE, params = genParams)/(tE + nCompare - DeltaQ) )
+  utility <- getUtility(s = s,
+                        efficacy = getIntegral(upper = tE + x + DeltaT.vals, lower = DeltaQ, tE = tE, params = genParams) +
+                 (1 - falseNeg(x) + r * falseNeg(x)) * getIntegral(upper = tE + n, lower = tE + x + DeltaT.vals, tE = tE, params = genParams),
+                        time = tE + x + DeltaT.vals - DeltaQ + s * (1 - falseNeg(x)) * (n - x - DeltaT.vals))
   data.frame(
-    x = factor(x, levels = x.vals),
-    n = nPrime,
-    relUtility = relUtility
+    DeltaT = factor(DeltaT.vals),
+    x = x,
+    release = x + DeltaT.vals,
+    relUtility = utility / utilityNoTest
   )
 })
 relUtilityReduced <- do.call(rbind, relUtilityReduced)
 
 #' Plot
-utilityPlot <- ggplot(relUtility, aes(x = n, y = relUtility, colour = x)) + 
-  geom_hline(yintercept = 1, color = "darkgrey", size = 1.2) +
-  geom_vline(xintercept = nCompare, color = "darkgrey", size = 1.2) +
-  geom_line(data = relUtilityReduced, linetype = "dotted") +
-  geom_line() +
-  geom_point() +
-  coord_cartesian(xlim = c(0,15)) +
-  scale_y_continuous(limits = c(0,2.7), breaks = seq(0,2.5,0.5)) +
+utilityPlot <- ggplot(relUtilityTest, aes(x = release, y = relUtility, colour = DeltaT, fill = DeltaT)) + 
+  geom_vline(xintercept = n, color = "darkgrey", size = lineSize) +
+  geom_hline(yintercept = 1, color = "darkgrey", size = lineSize) +
+  geom_line(data = relUtilityNoTest, colour = "darkgrey", size = lineSize) +
+  geom_line(data = relUtilityReduced, linetype = "dashed", size = 0.7) +
+  geom_line(size = lineSize) +
+  my_geom_point +
+  scale_x_continuous(limits = c(0,10), breaks = seq(0,10,2)) +
+  coord_cartesian(ylim = c(0,4)) +
   colours +
-  labs(x = "quarantine duration (days)", y = "relative utility of quarantine") +
-  plotTheme + theme(legend.position = c(0.15,0.69), legend.background = element_blank(), legend.key.height = unit(0.5,"cm"))
+  labs(x = expression("day of release" ~ (t[T]+Delta[T])), y = "\nrelative utility of quarantine") +
+  plotTheme + theme(legend.position = "None")
+
 #' Plot together
-plot_grid(fracPlot, utilityPlot, nrow = 1, axis = "tb", align = "hv", labels = "AUTO")
+plot_grid(
+  plot_grid(fracPlot, utilityPlot, nrow = 1, axis = "tb", align = "hv", labels = "AUTO"),
+  legend, ncol = 1, rel_heights = c(1,0.2)
+)
 ```
 
-Again the function $F_{\rm test}$ shown in Fig. \ref{fig:contacts:test}A describes only the epidemiological benefit of quarantine.
-The average time spent in quarantine will be $t_2+x+\Delta_T-\Delta_Q + s[1-f(x-t_E)](n-x-\Delta_T)$, where only positive cases $s$ have the ability to return a positive test and remain in quarantine (i.e. we assume there are no false-positive test results).
+The function $F_{\rm test}$ shown in Fig. \ref{fig:contacts:test}A describes only the epidemiological benefit of quarantine.
+The average time spent in quarantine will be $t_E+x+\Delta_T-\Delta_Q + {s[1-f(x)](n-x-\Delta_T)}$, where only positive cases $s$ have the ability to return a positive test and remain in quarantine (i.e. we assume there are no false-positive test results).
 Hence the utility of the test-and-release strategy, using the definition in Eq. \eqref{eq:utility}, is
 \begin{equation}
-U_{\rm test}(n,x) = \frac{s F_{\rm test}}{t_2+x+\Delta_T-\Delta_Q + s[1-f(x-t_E)](n-x-\Delta_T)}.
+U_{\rm test}(n,x) = \frac{s F_{\rm test}}{t_E+x+\Delta_T-\Delta_Q + s[1-f(x)](n-x-\Delta_T)}.
 \label{eq:contacts:testUtility}
 \end{equation}
-We can now compare the test-and-release strategy of duration $n'$ and test day $x$ with standard quarantine of duration $n$ using the relative utility $U_{\rm test}(n',x)/U(n)$, which now depends on the specificity $s$.
-Based on this metric of utility, we see that early testing is the optimal strategy (Fig. \ref{fig:contacts:test}B).
-Testing on day five and releasing on day seven (we consider a fixed delay $\Delta_T=2$ days) with a quarantine duration of $n = 10$ days has a relative utility of $1.5$ compared to a standard 10 day quarantine, but with transmission only reducing from 90\% to 82\%.
+We can now compare the test-and-release strategy with standard quarantine of duration $n=10$ days using the relative utility $U_{\rm test}(n',x)/U(n)$, which now depends on $s$.
+Based on this metric, we see that testing-and-releasing before the end of the standard quarantine period increases the utility (Fig. \ref{fig:contacts:test}B).
+Testing on day five and releasing on day seven (assuming a delay $\Delta_T=2$ days between the test and receipt of a negative result) has a relative utility of 1.5 compared to a standard 10 day quarantine.
+Reducing the delay between test and result leads to a corresponding increase in utility: a rapid test ($\Delta_T=0$) on day six has a relative utility of 1.9 for an equivalent efficacy (Fig. \ref{fig:contacts:test}B).
 
-Finally, we consider the reduced quarantine strategy, where individuals who receive a negative test result are released from quarantine but must adhere to strict hygiene and social distancing protocols until the end of the full quarantine.
-Considering a 50\% reduction of post-quarantine transmission, we see very large increases in both efficacy and utility for early testing strategies, but with diminishing returns as the time at which tests are conducted is increased (dotted lines in Fig. \ref{fig:contacts:test}).
-Note that we assume no contribution to the cost in the utility function due to mask wearing and social distancing in the post-release phase.
+Finally, we consider the effects of reinforced prevention measures, where individuals who receive a negative test result are released from quarantine but must adhere to strict hygiene and social distancing protocols until the end of the full quarantine.
+Considering a 50\% reduction of post-quarantine transmission, we see large increases in both efficacy and utility for early testing strategies, but with diminishing returns as the time at which tests are conducted is increased (dashed lines in Fig. \ref{fig:contacts:test}).
+Note that we assume no contribution to the number of days spent in quarantine in the utility function due to mask wearing and social distancing in the post-release phase.
 
-### Further considerations: adherence and symptoms
-Another factor that can affect the efficacy of quarantine is the level of adherence to a given strategy.
-For a quarantine duration of $n$ days, a fraction $\alpha(n)$ of identified contacts will adhere to the strategy, while a fraction $1-\alpha(n)$ will ignore the guideline.
-Hence the fraction of transmission prevented due to quarantine is $s \alpha(n) F(n)$, where again $s$ is the specificity of quarantined individuals which we assume is independent of $n$.
-We expect $\alpha(n)$ to be a decreasing function of $n$, i.e. longer quarantines have a lower adherence.
-For two quarantine strategies with durations $n$ and $n'$ to have the same overall efficacy, the adherences must satisfy
-\begin{equation}
-\frac{\alpha(n')}{\alpha(n)} = \frac{F(n)}{F(n')}.
-\label{eq:contacts:adherence}
-\end{equation}
-In other words, the change in the fraction of transmission prevented by quarantine must be compensated by an inverse change in the adherence.
-Shortening the duration of quarantine from 10 days to 5 days would require more than twice as many individuals to adhere to the quarantine guidelines in order to maintain the same overall efficacy (Fig. \ref{fig:contacts:further}A).
-If quarantine is shortened further, then the required increase in adherence grows rapidly and soon becomes infeasible (the maximum possible adherence is $\alpha=1$, so depending on the baseline level of adherence it may be impossible to increase this by the required factor).
+
+### Adherence to quarantine and proportion of individuals with persistently asymptomatic infection
+Shortening the duration of quarantine from 10 days to five days would require more than twice as many individuals to adhere to the quarantine guidelines in order to maintain the same overall efficacy (Fig. \ref{fig:contacts:further}A).
+If quarantine is shortened further, then the required increase in adherence grows rapidly and soon becomes unfeasible (the maximum possible adherence is $\alpha=1$, so depending on the baseline level of adherence it may be impossible to increase this by the required factor).
 Hence the argument of shortening quarantine to increase adherence is of limited use.
 
-```{r contacts-further, fig.width = 8, fig.cap = "A) The change in adherence needed to maintain quarantine efficacy of the $n=10$ day strategy if we change the quarantine duration to $n'$ days (x-axis), i.e. $\\alpha(n')/\\alpha(10)$ [Eq. \\eqref{eq:contacts:adherence}]. B) The impact of symptomatic cases on the fraction of total onward transmission per infected traced contact that is prevented by quarantine [Eq. \\eqref{eq:contacts:asymptomatic}]. We fix $\\Delta_Q=3$ as the delay until quarantine, and $t_S=5$, which is the mean incubation time. The curve for $a=1$ corresponds to Fig. \\ref{fig:contacts:quarantine}A. In both panels we use $t_E = 0$, which is the mean infection time of secondary cases based on the infectivity profile.\\label{fig:contacts:further}"}
+```{r contacts-further, fig.width = 8, fig.cap = "A) The change in adherence $\\alpha$ needed to maintain quarantine efficacy of the $n=10$ day strategy if we change the quarantine duration to $n'$ days (x-axis), i.e. $\\alpha(n')/\\alpha(10)$ [Eq. \\eqref{eq:adherence}]. B) The impact of symptomatic cases on the fraction of total onward transmission per infected traced contact that is prevented by quarantine [Eq. \\eqref{eq:asymptomatic}]. We fix $\\Delta_Q=3$ as the delay until quarantine, and $t_S=5$, which is the mean incubation time. The curve for $a=1$ corresponds to Fig. \\ref{fig:contacts:quarantine}A. In both panels we use $t_E = 0$, which is the mean infection time of secondary cases based on the infectivity profile.\\label{fig:contacts:further}"}
 #' Relative adherence required
-DeltaQ.vals <- seq(0,4)
 tE <- 0
-tS <- tE + incParams$mean
 nCompare <- 10
+
+DeltaQ.vals <- seq(0,4)
 n.vals <- seq(0,15)
 
 relAdherence <- lapply(DeltaQ.vals, function(DeltaQ) {
@@ -494,28 +615,31 @@ relAdherence <- do.call(rbind, relAdherence)
 labs <- paste(levels(relAdherence$DeltaQ), ifelse(levels(relAdherence$DeltaQ) == 1, "day", "days"))
 names(labs) <- levels(relAdherence$DeltaQ)
 
-adherencePlot <- ggplot(relAdherence, aes(x = n, y = relAdherence, colour = DeltaQ)) +
-  geom_hline(yintercept = 1, color = "darkgrey", size = 1.2) +
-  geom_vline(xintercept = nCompare, color = "darkgrey", size = 1.2) +
-  geom_line() +
-  geom_point() +
+adherencePlot <- ggplot(relAdherence, aes(x = n, y = relAdherence, colour = DeltaQ, fill = DeltaQ)) +
+  geom_hline(yintercept = 1, color = "darkgrey", size = lineSize) +
+  geom_vline(xintercept = nCompare, color = "darkgrey", size = lineSize) +
+  geom_line(size = lineSize) +
+  my_geom_point +
   scale_x_continuous(limits = c(0,15)) +
   coord_cartesian(ylim = c(0,4)) +
-  scale_colour_viridis_d(option = "inferno", end = 0.9, aesthetics = c("colour","fill"), name = "delay to\nquarantine", labels = labs) +
+  scale_colour_viridis_d(option = "inferno", end = 0.9, name = "delay to\nquarantine",
+                         aesthetics = c("colour","fill"), labels = dayLabels(DeltaQ.vals),
+                         guide = guide_legend(title.position = "left", title.hjust = 0.5, nrow = 2, byrow = T)) +
   labs(x = "quarantine duration (days)", y = "relative adherence required\nto maintain quarantine efficacy") +
-  plotTheme + theme(legend.position = c(0.83,0.64), legend.background = element_blank(), legend.key.height = unit(0.5,"cm"))
+  plotTheme + theme(legend.position = "bottom", legend.box.background = element_rect(colour = "black"), legend.key.height = unit(0.5,"cm"))
 
 #' Fraction of contacts that occur during quarantine for a given level of asymptomatic vs symptomatic
 DeltaQ <- 3
 tE <- 0
 tS <- tE + incParams$mean
+
 n.vals <- seq(0,15)
 a.vals <- seq(0,1,0.25)
 
 frac <- lapply(a.vals, function(a) {
   n <- n.vals[n.vals >= DeltaQ]
   frac <- a * (getIntegral(upper = tE + n, lower = DeltaQ, tE = tE, params = genParams)) +
-    (1 - a) * (getIntegral(upper = pmin(tE + n, tS), lower = DeltaQ, tE = tE, params = genParams))
+    (1 - a) * (getIntegral(upper = pmax(pmin(tE + n, tS),0), lower = DeltaQ, tE = tE, params = genParams))
   data.frame(
     a = factor(a, levels = a.vals),
     n = n,
@@ -527,58 +651,50 @@ frac <- do.call(rbind, frac)
 labs <- scales::percent(as.numeric(levels(frac$a)))
 names(labs) <- levels(frac$a)
 
-asymptomaticPlot <- ggplot(frac, aes(x = n, y = fraction, colour = a)) +
-  geom_line() +
-  geom_point() +
+asymptomaticPlot <- ggplot(frac, aes(x = n, y = fraction, colour = a, fill = a)) +
+  geom_line(size = lineSize) +
+  my_geom_point +
   scale_x_continuous(limits = c(0,15)) +
   scale_y_continuous(limits = c(0,1), labels = scales::percent) +
-  scale_colour_viridis_d(option = "inferno", direction = -1, end = 0.9, aesthetics = c("colour","fill"), name = "fraction\nasymptomatic", labels = labs) +
+  scale_colour_viridis_d(option = "viridis", direction = -1, end = 0.9,
+                         name = "fraction\nasymptomatic", aesthetics = c("colour","fill"),
+                         labels = labs, guide = guide_legend(title.position = "left", title.hjust = 0.5, nrow = 2, byrow = T)) +
   labs(x = "quarantine duration (days)", y = "fraction of transmission\nprevented by quarantine") +
-  plotTheme + theme(legend.position = c(0.21,0.64), legend.background = element_blank(), legend.key.height = unit(0.5,"cm"))
+  plotTheme + theme(legend.position = "bottom", legend.box.background = element_rect(colour = "black"), legend.key.height = unit(0.5,"cm"))
 
 #' Plot together
 plot_grid(adherencePlot, asymptomaticPlot, nrow = 1, axis = "tb", align = "hv", labels = "AUTO")
 ```
 
-As a final consideration, we note that our quantification of the fraction of transmission prevented by quarantine is more relevant to asymptomatic cases than to those who develop symptoms during the quarantine phase.
-If a traced contact develops symptoms and ultimately tests positive while in quarantine, we can remove them from the population indefinitely as they would have to isolate themselves.
-Importantly, this individual would be removed from the population regardless of quarantine, so the reduction of cases due to their isolation should not be counted towards the efficacy of quarantine.
-
-Let $a$ be the fraction of asymptomatic cases, who will be quarantined using the standard strategy from time $t_Q = \Delta_Q$ until $t_R = t_E+n$.
-We assume that the symptomatic cases would anyway be isolated once they develop symptoms (at time $t_S$ as described by the incubation period distribution, Fig. \ref{fig:distributions}C), so these individuals are effectively quarantined until $t_R = \min(t_E+n,t_S)$.
-Therefore, for each traced contact who is put into quarantine, the fraction of infections that would be prevented by quarantine is
-\begin{equation}
-F(n,a) = a \int_{\Delta_Q}^{t_E+n} {\rm d}t' \, q(t' - t_E) +
-(1-a) \int_{\Delta_Q}^{\min(t_E+n,t_S)} {\rm d}t' \, q(t' - t_E).
-\label{eq:contacts:asymptomatic}
-\end{equation}
+As a final consideration, we note that our quantification of the fraction of transmission prevented by quarantine [Eq. \eqref{eq:area}] is more relevant to individuals with persistently asymptomatic SARS-CoV-2 infection than to those who develop symptoms during the quarantine phase and are subsequently tested and isolated.
 The fraction of transmission prevented by quarantine is an increasing function of the fraction of asymptomatic cases (Fig. \ref{fig:contacts:further}B).
 This means that we likely overestimate the efficacy of quarantine as we are also counting transmission that is prevented by isolation following a positive test result.
 
 
-## Quarantining returning travellers
-Unlike our traced contacts, we do not know when travellers were (potentially) exposed.
-This means that quarantine starts from the date that they return ($t_Q=0$) and lasts for $n$ days until time $t_R=n$.
-For simplicity, we assume a traveller was infected at some time over a multi-day travel period $-y \le t_E \le 0$, where $y$ is the duration of travel.
-For each exposure time $t_E$, we compute the fraction of total transmission that would be prevented by 
-quarantine [$F(n)$; Eq. \eqref{eq:area}], and then compute the average over the travel duration.
-Quarantine is most beneficial after shorter travel durations, as the majority of transmission would occur once the traveller has returned, which quarantine would prevent (Fig. \ref{fig:travellers:quarantine}A).
-We note that this is the absolute fraction of transmission prevented by quarantine, as opposed to how much transmission is blocked relative to the total transmission possible after arrival [which would be $F(n)/F(\infty)$].
+## Quarantine of returning travellers
+Returning travellers that have been infected on a short journey will have, on average, used up less of their infectivity potential by the time they return than a traveller who was infected on a long journey.
+Hence, the \emph{total} transmission that can be prevented by a long quarantine period (i.e. 10 days) upon arrival, is greater for short trips (Fig. \ref{fig:travellers:quarantineTotal}).
+When considering the fraction of \emph{local} transmission that can be prevented by quarantine [$F_{\rm local}$; Eq. \eqref{eq:Flocal}], then shorter quarantine durations have a greater impact on long than short trips (Fig. \ref{fig:travellers:quarantine}A).
+Again, this is because, on average, the traveller on a long trip would have been exposed earlier and they will be infectious for a shorter time period after arrival.
+A standard quarantine duration of 10 days is enough to prevent almost all local transmission for any travel duration (Fig. \ref{fig:travellers:quarantine}A).
 
-```{r travellers-quarantine, fig.width = 8, fig.cap = "A) The fraction of total onward transmission per quarantined traveller that is prevented by quarantine [$F$; Eq. \\eqref{eq:area}]. B) The relative utility of different quarantine strategies (x-axis) compared to $n=10$ days, i.e. $U(n')/U(10)$ [Eq. \\eqref{eq:travellers:relUtility}]. Colours represent the duration of travel $y$ and we assume infection can occur on any day $-y \\le t_E \\le 0$ with uniform probability.\\label{fig:travellers:quarantine}"}
+```{r travellers-quarantine, fig.width = 8, fig.cap = "A) The fraction of local onward transmission per quarantined traveller that is prevented by quarantine [$F_{\\rm local}$; Eq. \\eqref{eq:Flocal}]. B) The relative utility of different quarantine strategies (x-axis) compared to $n=10$ days, i.e. $U(n')/U(10)$ [Eq. \\eqref{eq:travellers:relUtility}]. Colours represent the duration of travel $y$ and we assume infection can occur on any day $-y \\le t_E \\le 0$ with uniform probability.\\label{fig:travellers:quarantine}"}
 #' Fraction of contacts that occur between 0 and n (duration of quarantine)
 nCompare <- 10
+
 y.vals = c(1,2,3,5,7,10,14)
 n.vals <- seq(0,15)
 
-labs <- paste(y.vals, ifelse(y.vals == 1, "day", "days"))
-names(labs) <- y.vals
-colours <- scale_colour_viridis_d(option = "inferno", end = 0.9, aesthetics = c("colour","fill"), name = "duration\nof travel", labels = labs)
+colours <- scale_colour_viridis_d(
+  option = "inferno", end = 0.9, name = "duration of travel (y)",
+  aesthetics = c("colour","fill"), labels = dayLabels(y.vals),
+  guide = guide_legend(title.position = "left", title.hjust = 0.5, nrow = 1))
 
 frac <- lapply(y.vals, function(y) {
   tE.vals <- seq(-y,0)
+  maxPreventable <- getIntegral(upper = Inf, lower = 0, tE = tE.vals, params = genParams)
   frac <- lapply(n.vals, function(n) {
-    frac <- mean(getIntegral(upper = n, lower = 0, tE = tE.vals, params = genParams))
+    frac <- mean(getIntegral(upper = n, lower = 0, tE = tE.vals, params = genParams)/maxPreventable)
     data.frame(
       y = factor(y, levels = y.vals),
       n = n,
@@ -589,187 +705,365 @@ frac <- lapply(y.vals, function(y) {
 })
 frac <- do.call(rbind, frac)
 #' Plot
-fracPlot <- ggplot(frac, aes(x = n, y = fraction, colour = y)) + 
-  geom_line() +
-  geom_point() +
+fracPlot <- ggplot(frac, aes(x = n, y = fraction, colour = y, fill = y)) + 
+  geom_line(size = lineSize) +
+  my_geom_point +
   scale_x_continuous(limits = c(0,15)) +
   scale_y_continuous(limits = c(0,1), labels = scales::percent) +
-  labs(x = "quarantine duration (days)", y = "fraction of transmission\nprevented by quarantine") +
+  labs(x = "quarantine duration (days)", y = "fraction of local transmission\nprevented by quarantine") +
   colours +
-  plotTheme + theme(legend.position = "None")
+  plotTheme + theme(legend.box.background = element_rect(colour = "black"))
+legend <- get_legend(fracPlot)
+fracPlot <- fracPlot + theme(legend.position = "None")
 
 #' Relative utility compared to n=10 days
 relUtility <- lapply(y.vals, function(y) {
   tE.vals <- seq(-y,0)
+  maxPreventable <- getIntegral(upper = Inf, lower = 0, tE = tE.vals, params = genParams)
+  utility.nCompare <- getUtility(efficacy = mean(getIntegral(upper = nCompare, lower = 0, tE = tE.vals, params = genParams)/
+                                                   maxPreventable),
+                                 time = nCompare)
   relUtility <- lapply(n.vals[n.vals > 0], function(n) {
-    relUtility <- ( mean(getIntegral(upper = n, lower = 0, tE = tE.vals, params = genParams))/n )/
-      (mean(getIntegral(upper = nCompare, lower = 0, tE = tE.vals, params = genParams))/nCompare )
+    utility <- getUtility(efficacy = mean(getIntegral(upper = n, lower = 0, tE = tE.vals, params = genParams)/
+                                            maxPreventable),
+                                          time = n)
     data.frame(
       y = factor(y, levels = y.vals),
       n = n,
-      relUtility = relUtility
+      relUtility = utility / utility.nCompare
     )
   })
   relUtility <- do.call(rbind, relUtility)
 })
 relUtility <- do.call(rbind, relUtility)
 #' Plot
-utilityPlot <- ggplot(relUtility, aes(x = n, y = relUtility, colour = y)) + 
-  geom_hline(yintercept = 1, color = "darkgrey", size = 1.2) +
-  geom_vline(xintercept = nCompare, color = "darkgrey", size = 1.2) +
-  geom_line() +
-  geom_point() +
+utilityPlot <- ggplot(relUtility, aes(x = n, y = relUtility, colour = y, fill = y)) + 
+  geom_hline(yintercept = 1, color = "darkgrey", size = lineSize) +
+  geom_vline(xintercept = nCompare, color = "darkgrey", size = lineSize) +
+  geom_line(size = lineSize) +
+  my_geom_point +
   scale_x_continuous(limits = c(0,15)) +
-  coord_cartesian(ylim = c(0,2)) + 
+  coord_cartesian(ylim = c(0,2.5)) + 
   colours +
-  labs(x = "quarantine duration (days)", y = "relative utility of quarantine") +
-  plotTheme + theme(legend.position = "right", legend.background = element_blank(), legend.key.height = unit(0.5,"cm"))
+  labs(x = "quarantine duration (days)", y = "\nrelative utility of quarantine") +
+  plotTheme + theme(legend.position = "None")
+
 #' Plot together
-plot_grid(fracPlot, utilityPlot, nrow = 1, axis = "tb", align = "hv", labels = "AUTO")
+plot_grid(
+  plot_grid(fracPlot, utilityPlot, nrow = 1, axis = "tb", align = "hv", labels = "AUTO"),
+  legend, ncol = 1, rel_heights = c(1,0.2)
+)
 ```
 
-The human cost of quarantine here is $n$ days, and hence the utility is simply $U(n) = s F(n)/n$.
+The human cost of quarantine here is $n$ days, and hence the utility is simply $U(n) = s F_{\rm local}(n)/n$.
 Comparing two different strategies $n$ and $n'$, we have the relative utility
 \begin{equation}
-U(n')/U(n) = \frac{n' \langle F(n)\rangle_y}{n \langle F(n')\rangle_y},
+\frac{U(n')}{U(n)} = \frac{n' F_{\rm local}(n)}{n F_{\rm local}(n')}.
 \label{eq:travellers:relUtility}
 \end{equation}
-where $\langle \cdot \rangle_y$ represents the average over the travel duration $y$.
-An individual who has been infected during a long-duration travel will have, on average, been infected earlier and therefore will have, on average, less remaining infectivity potential upon return compared to an individual who travelled for a short duration.
-Hence if an individual traveller is to be quarantined, then the optimum duration of quarantine, based on this metric of utility, would depend on the duration of their travel, with shorter journeys requiring longer quarantine (Fig. \ref{fig:travellers:quarantine}B).
+As above, an individual who has been infected during a long trip will have, on average, been infected earlier and therefore will have, on average, less remaining infectivity potential upon return compared with an individual who travelled for a short duration.
+Hence, if an individual traveller is to be quarantined, then the optimum duration of quarantine, based on this metric of utility, would depend on the duration of their travel, with shorter journeys requiring longer quarantine (Fig. \ref{fig:travellers:quarantine}B).
 This might be counter-intuitive because individuals who have been on longer journeys to high risk countries have a higher probability of being infected.
+The absolute utility $U$ of quarantining such individuals is indeed higher than for individuals returning from shorter journeys.
 However, here, we are not considering the question of whether to quarantine or not, but we are assuming that the individual is quarantined and are trying to optimise the duration of quarantine in response to the expected infection dynamics.
-As the relative utility [Eq. \eqref{eq:travellers:relUtility}] is independent of the specificity $s$, the prevalence of disease in the travel destination (which should correlate the fraction of travellers becoming infected at that destination) does not influence the optimal quarantine duration.
+As the relative utility [Eq. \eqref{eq:travellers:relUtility}] is independent of $s$, the prevalence of disease in the travel destination (which should correlate with the fraction of travellers becoming infected at that destination) does not influence the optimal quarantine duration.
 
-### Testing and releasing
+### Test-and-release strategy
 If a returning traveller is tested at time $t_T = x$ during quarantine then they are released on day $t_{R^-} = x+\Delta_T$ if the test is negative, or else kept in quarantine until day $t_{R^+} = n$.
-The fraction of transmission prevented by quarantining an infected traveller [$F_{\rm test}$; Eq. \eqref{eq:test}] accounts for false-negative test results.
-We show that there is little increase in transmission if quarantine is shortened for returning travellers who are tested on day $x$ (Fig. \ref{fig:travellers:test}A).
-However, the timing of the test has a significant impact on prevented transmission.
-Standard quarantine for ten days prevents 73\% of transmission, testing on day five and releasing on day seven prevents 72\% of transmission, but testing upon return at day zero only prevents 31\% of transmission.
+We focus on a seven day trip and fix $n=10$ days, which is long enough to prevent almost 100\% of local onward transmission from the returning traveller (Fig. \ref{fig:travellers:quarantine}A). 
+The fraction of local transmission prevented by testing-and-releasing an infected traveller accounts for false-negative test results.
 
-```{r travellers-test, fig.width = 8, fig.cap = "A) The impact of test-and-release for quarantined travellers, in terms of what fraction of total onward transmission per quarantined infected traveller is prevented by quarantine [$F_{\\rm test}$; Eq. \\eqref{eq:test}]. The dashed line shows the result of standard quarantine without testing [$F$; Eq. \\eqref{eq:area}] B) The relative utility of different test-and-release quarantine durations compared to standard quarantine with duration $n=10$ days, i.e. $U_{\\rm test}(n',x)/U(10)$. We consider a travel duration of $y=7$ days and we assume infection can occur on any day $-y \\le t_E \\le 0$ with uniform probability. Individuals are tested on day $x$ (colour) after returning on day $0$ and released on day $x+2$ if negative (we assume it takes $\\Delta_T=2$ days to receive a test result). We assume a specificity of $s=0.1$ and that there are no false-positive test results. Dotted lines in both panels assume the released travellers have a 50\\% reduced transmission ($r=0.5$) due to extra hygiene and social distancing measures imposed by reduced quarantine [Eq. \\eqref{eq:reduced}].\\label{fig:travellers:test}"}
+As was the case for the traced contacts, the fraction of local transmission prevented by standard quarantine bounds the efficacy of the test-and-release quarantine strategy (Fig. \ref{fig:travellers:test}A).
+The timing of the test can have significant impact on prevented transmission; late testing reduces the false negative probability but increases the stay in quarantine.
+An important consequence of this is that testing on arrival ($x=0$) is a poor strategy for limiting transmission: testing upon return at day zero only prevents 54.1\% of local transmission, but testing on day five and releasing on day seven prevents 98.5\% of local transmission.
+
+A rapid test could eliminate the two-day delay between test and result.
+If the rapid test ($\Delta_t=0$) has the same sensitivity and specificity as the laboratory-based RT-PCR test, then the duration of quarantine of individuals with a negative test result can be shortened by one day with minimal loss in efficacy compared to the standard test (Fig. \ref{fig:travellers:test}A).
+
+```{r travellers-test, fig.width = 8, fig.cap = "A) The impact of test-and-release for quarantined travellers, in terms of what fraction of local onward transmission per quarantined infected traveller is prevented by quarantine. The grey lines represent the upper and lower bounds for the fraction of transmission that can be prevented by quarantine without testing. B) The relative utility of different test-and-release quarantine durations compared to standard quarantine with duration $n=10$ days. The grey curve is the relative utility of standard quarantine without testing. In both panels we consider a travel duration of $y=7$ days and we assume infection can occur on any day $-y \\le t_E \\le 0$ with uniform probability. Individuals are tested on day $x$ after returning on day $0$ and released on day $x+\\Delta_T$ (x-axis) if negative (colour corresponds to $\\Delta_T$). We assume that the fraction of individuals in quarantine that are infected is $s=0.1$, and that there are no false-positive test results. Dashed lines in both panels assume the released travellers have a 50\\% reduced transmission ($r=0.5$) due to extra hygiene and social distancing measures imposed by reduced quarantine [Eq. \\eqref{eq:reduced}].\\label{fig:travellers:test}"}
 #' Fraction of tertiary contacts that occur in quarantine
 y <- 7
 tE.vals <- seq(-y,0)
 s <- 0.1
 r <- 0.5
-nCompare <- 10
-DeltaT <- 2
-n.vals <- seq(0,15)
-x.vals <- seq(0,5)
+n <- 10
+DeltaT.vals <- seq(0,3)
+x.vals <- seq(0,10)
 
-colours <- scale_colour_viridis_d(option = "inferno", direction = -1, end = 0.9, aesthetics = c("colour","fill"), name = "day of test")
+colours <- scale_colour_viridis_d(
+  option = "viridis", direction = -1, end = 0.9,
+  name = expression("test result delay" ~ (Delta[T])),
+  label = dayLabels(DeltaT.vals), aesthetics = c("colour","fill"),
+  guide = guide_legend(title.position = "left", title.hjust = 0.5, nrow = 1))
+
+#' Maximum preventable fractions
+maxPreventable <- getIntegral(upper = Inf, lower = 0, tE = tE.vals, params = genParams)
 
 #' Fraction of infection prevented using normal strategy
 fracNoTest <- data.frame(
-  n = n.vals,
-  fraction  = sapply(n.vals, function(n) mean(getIntegral(upper = n, lower = 0, tE = tE.vals, params = genParams)))
+  DeltaT = NA,
+  x = NA,
+  release = x.vals,
+  fraction  = sapply(x.vals, function(n) mean(getIntegral(upper = n, lower = 0, tE = tE.vals, params = genParams)/
+                     maxPreventable))
 )
-#' Fraction prevented by test and release strategy
-frac <- lapply(x.vals, function(x) {
-  frac <- lapply(n.vals[n.vals >= x + DeltaT], function(n) {
-    frac <- mean(getIntegral(upper = x + DeltaT, lower = 0, tE = tE.vals, params = genParams) +
-                   (1 - falseNeg(x - tE.vals)) * getIntegral(upper = n, lower = x + DeltaT, tE = tE.vals, params = genParams))
+#' Fraction prevented by test-and-release strategy
+fracTest <- lapply(x.vals, function(x) {
+  fracTest <- lapply(DeltaT.vals, function(DeltaT) {
+    fraction <- mean((getIntegral(upper = x + DeltaT, lower = 0, tE = tE.vals, params = genParams) +
+                   (1 - falseNeg(x - tE.vals)) * getIntegral(upper = n, lower = x + DeltaT, tE = tE.vals, params = genParams))/maxPreventable)
     data.frame(
-      x = factor(x, levels = x.vals),
-      n = n,
-      fraction = frac
+      DeltaT = factor(DeltaT, levels = DeltaT.vals),
+      x = x,
+      release = x + DeltaT,
+      fraction = fraction
     )
   })
-  frac <- do.call(rbind, frac)
+  fracTest <- do.call(rbind, fracTest)
 })
-frac <- do.call(rbind, frac)
+fracTest <- do.call(rbind, fracTest)
+
 #' Fraction prevented by test and release strategy with reduced post-quarantine transmission
 fracReduced <- lapply(x.vals, function(x) {
-  fracReduced <- lapply(n.vals[n.vals >= x + DeltaT], function(n) {
-    frac <- mean(getIntegral(upper = x + DeltaT, lower = 0, tE = tE.vals, params = genParams) +
-    (1 - falseNeg(x - tE.vals) + r * falseNeg(x - tE.vals)) * getIntegral(upper = n, lower = x + DeltaT, tE = tE.vals, params = genParams))
+  fracReduced <- lapply(DeltaT.vals, function(DeltaT) {
+    fraction <- mean((getIntegral(upper = x + DeltaT, lower = 0, tE = tE.vals, params = genParams) +
+    (1 - falseNeg(x - tE.vals) + r * falseNeg(x - tE.vals)) * getIntegral(upper = n, lower = x + DeltaT, tE = tE.vals, params = genParams))/maxPreventable)
     data.frame(
-      x = factor(x, levels = x.vals),
-      n = n,
-      fraction = frac
+      DeltaT = factor(DeltaT, levels = DeltaT.vals),
+      x = x,
+      release = x + DeltaT,
+      fraction = fraction
     )
   })
   fracReduced <- do.call(rbind, fracReduced)
 })
 fracReduced <- do.call(rbind, fracReduced)
 #' Plot
-fracPlot <- ggplot(frac, aes(x = n, y = fraction, colour = x)) +
-  geom_line(data = fracNoTest, colour = "black", linetype = "dashed") +
-  geom_line(data = fracReduced, linetype = "dotted") +
-  geom_line() +
-  geom_point() +
-  scale_x_continuous(limits = c(0,15)) +
+fracPlot <- ggplot(fracTest, aes(x = release, y = fraction, colour = DeltaT, fill = DeltaT)) +
+  geom_hline(yintercept = 1, colour = "darkgrey", size = lineSize) +
+  geom_line(data = fracNoTest, colour = "darkgrey", size = lineSize) +
+  geom_line(data = fracReduced, linetype = "dashed", size = 0.7) +
+  geom_line(size = lineSize) +
+  my_geom_point +
+  scale_x_continuous(limits = c(0,10), breaks = seq(0,10,2)) +
   scale_y_continuous(limits = c(0,1), labels = scales::percent) +
   colours +
-  labs(x = "quarantine duration (days)", y = "fraction of transmission\nprevented by quarantine") +
-  plotTheme + theme(legend.position = "None")
-#' Relative utility of strategy n' compared to n=10
+  labs(x = "day of release", y = "fraction of local transmission\nprevented by quarantine") +
+  plotTheme + theme(legend.box.background = element_rect(colour = "black"))
+legend <- get_legend(fracPlot)
+fracPlot <- fracPlot + theme(legend.position = "None")
+
+#' Utility without testing
+utilityNoTest <- getUtility(s = s,
+                            efficacy = mean(getIntegral(upper = n, lower = 0, tE = tE.vals, params = genParams)/
+                                              maxPreventable),
+                            time = n)
+
+relUtilityNoTest <- lapply(x.vals, function(n) {
+  utility <- getUtility(s = s,
+                        efficacy = mean(getIntegral(upper = n, lower = 0, tE = tE.vals, params = genParams)/
+                                          maxPreventable),
+                        time = n)
+  data.frame(
+    release = n,
+    DeltaT = NA,
+    relUtility = utility / utilityNoTest
+  )
+})
+relUtilityNoTest <- do.call(rbind, relUtilityNoTest)
+
+#' Relative utility of test-and-release strategy compared to standard
 relUtility <- lapply(x.vals, function(x) {
-  relUtility <- lapply(n.vals[n.vals >= x + DeltaT], function(n) {
-    relUtility <- ( mean(getIntegral(upper = x + DeltaT, lower = 0, tE = tE.vals, params = genParams) + (1 - falseNeg(x - tE.vals)) * getIntegral(upper = n, lower = x + DeltaT, tE = tE.vals, params = genParams))/mean(x + DeltaT + s*(1 - falseNeg(x - tE.vals)) * (n - x - DeltaT)) )/
-      ( mean(getIntegral(upper = nCompare, lower = 0, tE = tE.vals, params = genParams))/nCompare )
+  relUtility <- lapply(DeltaT.vals, function(DeltaT) {
+    utility <- getUtility(s = s,
+                          efficacy = mean((getIntegral(upper = x + DeltaT, lower = 0, tE = tE.vals, params = genParams) +
+                                             (1 - falseNeg(x - tE.vals)) * getIntegral(upper = n, lower = x + DeltaT, tE = tE.vals, params = genParams))/
+                                            maxPreventable),
+                          time = mean(x + DeltaT + s*(1 - falseNeg(x - tE.vals)) * (n - x - DeltaT)))
     data.frame(
-      x = factor(x, levels = x.vals),
-      n = n,
-      relUtility = relUtility
+      DeltaT = factor(DeltaT, levels = DeltaT.vals),
+      x = x,
+      release = x + DeltaT,
+      relUtility = utility / utilityNoTest
     )
   })
   relUtility <- do.call(rbind, relUtility)
 })
 relUtility <- do.call(rbind, relUtility)
+
 #' Relative utility with reduced post-quarantine transmission
 relUtilityReduced <- lapply(x.vals, function(x) {
-  relUtility <- lapply(n.vals[n.vals >= x + DeltaT], function(n) {
-    relUtility <- ( mean(getIntegral(upper = x + DeltaT, lower = 0, tE = tE.vals, params = genParams) + (1 - falseNeg(x - tE.vals) + r * falseNeg(x - tE.vals)) * getIntegral(upper = n, lower = x + DeltaT, tE = tE.vals, params = genParams))/mean(x + DeltaT + s*(1 - falseNeg(x - tE.vals)) * (n - x - DeltaT)) )/
-      ( mean(getIntegral(upper = nCompare, lower = 0, tE = tE.vals, params = genParams))/nCompare )
+  relUtility <- lapply(DeltaT.vals, function(DeltaT) {
+    utility <- getUtility(s = s,
+                          efficacy = mean((getIntegral(upper = x + DeltaT, lower = 0, tE = tE.vals, params = genParams) +
+                                             (1 - falseNeg(x - tE.vals) + r * falseNeg(x - tE.vals)) * getIntegral(upper = n, lower = x + DeltaT, tE = tE.vals, params = genParams))/
+                                            maxPreventable),
+                          time = mean(x + DeltaT + s*(1 - falseNeg(x - tE.vals)) * (n - x - DeltaT)))
     data.frame(
-      x = factor(x, levels = x.vals),
-      n = n,
-      relUtility = relUtility
+      DeltaT = factor(DeltaT, levels = DeltaT.vals),
+      x = x,
+      release = x + DeltaT,
+      relUtility = utility / utilityNoTest
     )
   })
   relUtility <- do.call(rbind, relUtility)
 })
 relUtilityReduced <- do.call(rbind, relUtilityReduced)
 #' Plot
-utilityPlot <- ggplot(relUtility, aes(x = n, y = relUtility, colour = x)) + 
-  geom_hline(yintercept = 1, color = "darkgrey", size = 1.2) +
-  geom_vline(xintercept = nCompare, color = "darkgrey", size = 1.2) +
-  geom_line(data = relUtilityReduced, linetype = "dotted") +
-  geom_line() +
-  geom_point() +
-  scale_x_continuous(limits = c(0,15)) +
-  #scale_y_continuous(limits = c(0,1), labels = scales::percent) +
+utilityPlot <- ggplot(relUtility, aes(x = release, y = relUtility, colour = DeltaT, fill = DeltaT)) + 
+  geom_hline(yintercept = 1, color = "darkgrey", size = lineSize) +
+  geom_vline(xintercept = n, color = "darkgrey", size = lineSize) +
+  geom_line(data = relUtilityNoTest, colour = "darkgrey", size = lineSize) +
+  geom_line(data = relUtilityReduced, linetype = "dashed", size = 0.7) +
+  geom_line(size = lineSize) +
+  my_geom_point +
+  scale_x_continuous(limits = c(0,10), breaks = seq(0,10,2)) +
+  coord_cartesian(ylim = c(0,4)) +
   colours +
-  labs(x = "quarantine duration (days)", y = "relative utility of quarantine") +
-  plotTheme + theme(legend.position = c(0.15,0.69), legend.background = element_blank(), legend.key.height = unit(0.5, "cm"))
+  labs(x = "day of release", y = "\nrelative utility of quarantine") +
+  plotTheme + theme(legend.position = "None")
+
 #' Plot together
-plot_grid(fracPlot, utilityPlot, nrow = 1, axis = "tb", align = "hv", labels = "AUTO")
+plot_grid(
+  plot_grid(fracPlot, utilityPlot, nrow = 1, axis = "tb", align = "hv", labels = "AUTO"),
+  legend, ncol = 1, rel_heights = c(1,0.2)
+)
 ```
 
-Again the function $F_{\rm test}$ shown in Fig. \ref{fig:travellers:test}A describes only the epidemiological benefit of quarantining individuals.
-The average duration of quarantine will be $\langle x+\Delta_T + s[1-f(x-t_E)](n-x-\Delta_T)\rangle_y$, and hence the utility is
-\begin{equation}
-U_{\rm test}(n,x) = \frac{s \langle F_{\rm test}\rangle_y}{\langle x+\Delta_T + s [1-f(x-t_E)](n-x-\Delta_T)\rangle_y}.
-\label{eq:travellers:testEfficacy}
-\end{equation}
-Comparing the test-and-release strategy of duration $n'$ and test day $x$ with standard quarantine using the relative utility, i.e. $U_{\rm test}(n',x)/U(n)$, we see that shortening the duration of quarantine from 10 days (with $x$ fixed) has small positive impact on the utility, but early testing greatly reduces the average duration of quarantine and hence leads to increased utility (Fig. \ref{fig:travellers:test}B).
-Enforcing additional hygiene and social distancing guidelines following a negative test and release, we see large increases in both efficacy and utility for early testing strategies, but with diminishing returns as the time at which tests are conducted is increased (dotted lines in Fig. \ref{fig:travellers:test}).
-We note that the relative utility of the test-and-release strategy depends on the specificity of quarantine $s$, and this specificity may change depending on disease prevalence at the travel destination and the duration of travel. E.g., the infected fraction of travellers returning from a long stay in a high-risk country is likely to be higher than the infected fraction of travellers returning from a short stay to a low risk country.
+Fig. \ref{fig:travellers:test}A describes the epidemiological effect of quarantining individuals.
+The average duration of quarantine will be $\langle x+\Delta_T + s[1-f(x-t_E)](n-x-\Delta_T)\rangle_y$, and hence the utility $U_{\rm test}(n,x)$ and relative utility $U_{\rm test}(n',x)/U(n)$ will depend on $s$.
+Early testing greatly reduces the average duration of quarantine and hence leads to increased utility (Fig. \ref{fig:travellers:test}B).
+Enforcing additional hygiene and social distancing guidelines following a negative test and release can increase both efficacy and utility for early testing strategies, but with diminishing returns as the release date is increased (dashed lines in Fig. \ref{fig:travellers:test}).
+
+We note that the relative utility of the test-and-release strategy depends on the fraction of individuals in quarantine that are infected ($s$), and this fraction may change depending on disease prevalence at the travel destination and the duration of travel.
+E.g., the infected fraction of travellers returning from a long stay in a high-risk country is likely to be higher than the infected fraction of travellers returning from a short stay to a low risk country.
 In Fig. \ref{fig:travellers:test}B we keep $s$ fixed.
 
-### Further considerations: adherence and symptoms
-For a quarantine of duration $n$ days, a fraction $\alpha(n)$ of returning travellers will adhere to the strategy and remain quarantined, while a fraction $1-\alpha(n)$ will ignore the guideline.
-We compute the relative change in adherence that is required to compensate a change in quarantine efficacy following a change in the duration of quarantine [Eq. \eqref{eq:contacts:adherence}; Fig. \ref{fig:travellers:further}A].
-We see that shortened travel durations require a greater increase in adherence when compared to longer travel durations.
+Finally, we note that the change in adherence required to balance a change in efficacy for shortened quarantine durations is dependent on the travel duration, with short travel durations requiring a greater increase in adherence compared with longer travel durations (Fig. \ref{fig:travellers:further}A).
 
-Finally, we note that the above calculations are more suitable for describing asymptomatic cases, because cases who develop symptoms would be isolated anyway following a positive test.
-The fraction of transmission prevented by a quarantine of $n$ days while accounting for the self-isolation of travellers who show symptoms during the quarantine period can be calculated analogously to Eq. \eqref{eq:contacts:asymptomatic}.
-The fraction of transmission prevented by quarantine is an increasing function of the fraction of asymptomatic cases, such that we are likely overestimating the efficacy of quarantine as we are also counting transmission that is prevented by isolation (Fig. \ref{fig:travellers:further}B).
 
-```{r travellers-further, fig.width = 8, fig.cap = "A) The change in adherence needed to maintain quarantine efficacy of the $n=10$ day strategy if we change the quarantine duration to $n'$ days (x-axis), i.e. $\\alpha(n')/\\alpha(10)$. B) The impact of symptomatic cases on the fraction of total onward transmission per quarantined traveller that is prevented by quarantine. We fix the travel duration to $y=7$ days and assume $t_E$ is uniformly distributed between $-y$ and $0$. The curve $a=1$ corresponds to Fig. \\ref{fig:travellers:quarantine}. We use the mean incubation time of five days, such that $t_S = t_E + 5$.\\label{fig:travellers:further}"}
+# Discussion
+Quarantine is one of the most important measures in controlling the ongoing SARS-CoV-2 epidemic due to the large fraction of presymptomatic and asymptomatic transmission.
+A quarantine period of 10 days from exposure, as currently implemented in Switzerland, is long enough to prevent almost all onward transmission from infected contacts of confirmed cases from the point of entering quarantine: increasing the duration of quarantine beyond 10 days has no extra benefit.
+Reducing the delay to quarantining individuals increases the fraction of total transmission that is preventable.
+The same 10 day quarantine duration will prevent almost all local onward transmission from infected travel returners from the time of arrival, independent of their travel duration.
+
+Any decrease in the duration of quarantine of an infected individual will result in increased onward transmission.
+Furthermore, our analyses suggest that this increase in transmission cannot realistically be compensated by increased adherence for significantly shortened quarantine (fewer than five days).
+However, there are diminishing returns for each day that we add to quarantine: increasing the duration from 10 days has a negligible effect in terms of reduced transmission.
+One therefore has to assess how much human cost, measured in terms of days spent in quarantine, we are willing to spend to prevent disease transmission.
+By comparing the ratio of prevented transmission to quarantine duration, we have shown that maximal utility strategies can exist.
+This ratio is maximised for quarantine durations of six to eight days after exposure for traced contacts, and potentially less for returning travellers depending on their duration of travel.
+Importantly, under this metric the fraction of individuals in quarantine that are infected does not affect the optimal duration of quarantine.
+Therefore, the argument that we should shorten quarantine because of the low probability of being infected is misguided under our definition of utility and in the absence of testing during quarantine.
+
+A test-and-release strategy will lead to a lower average quarantine duration across infected and non-infected individuals.
+However, due to the considerable false-negative probability of the RT-PCR test \citep{kucirka:AnnalsofInternalMedicine:2020}, this strategy also leads to increased transmission as infectious individuals are prematurely released.
+Nevertheless, test-and-release strategies prevent more transmission than releasing without testing, and hence test-and-release increases the utility of quarantine.
+Reducing the delay between test and result leads to further reduced transmission and increased utility, and reinforcing individual prevention measures after release is also effective for short quarantine periods.
+
+The ratio of transmission prevented versus days spent in quarantine is only one possible definition of utility.
+Defining the appropriate function is ultimately a policy question: the economical, societal, and individual costs are likely a function the days spent in quarantine, but we cannot determine the shape of this function.
+Another perspective is that the utility of preventing transmission is crucially dependent on whether it brings the effective reproductive number under one.
+
+Ultimately, bringing the reproductive number below one requires a combination of effective measures including isolation, physical distancing, hygiene, contact tracing, and quarantine \citep{kucharski:TheLancetInfectiousDiseases:2020}.
+Effective quarantine is only possible in the presence of efficient contact tracing to find the potentially exposed individuals in a short time, as well as surveillance of disease prevalence to identify high-risk travel.
+Further reducing the time taken to quarantine a contact after exposure and reducing the delay between test and result will allow average quarantine durations to be shorter, which increases the benefit to cost ratio of quarantine.
+
+The scenarios of returning travellers and traced contacts of confirmed SARS-CoV-2 cases differ in the probability of having been exposed and infected and on the information available about the likely window of exposure.
+The impact of quarantining returning travellers depends on the duration of travel, and whether we consider the local prevention of transmission or the total transmission prevented by quarantine.
+However, a single test done immediately after return can only prevent a small fraction of the transmission from a returning traveller because of the false-negative rate of the RT-PCR test early in infection.
+Therefore testing should be postponed until as late as possible, and utilising rapid tests could be crucial if their performance characteristics are acceptable.
+This same principle also applies to traced contacts.
+Our findings are aligned with those of two recent simulation studies which estimate the role that quarantine plays in limiting transmission from returning travellers \citep{clifford:medRxiv:2020} and from traced contacts \citep{quilty:medRxiv:2020}.
+
+Our results are based on the latest estimates of the generation time distribution of COVID-19 \citep{ferretti:medRxiv:2020}.
+Potential limitations to our approach could be that these distributions may change throughout the epidemic, particularly depending on how people respond to symptoms \citep{ali:Science:2020}.
+Furthermore, these distributions could be different between persistently asymptomatic and symptomatic individuals \citep{buitrago-garcia:PLOSMedicine:2020}.
+For travellers, another consideration is that lengthy quarantine is seen as a deterrent to travel to high risk areas \citep{IATA:2020}.
+Any shortening of quarantine may lead to an increase in travel volume, potentially leading to a compounded increase in disease transmission.
+
+In the absence of empirical data about the effectiveness of different durations of quarantine, mathematical modelling can be used objectively to explore the fraction of onward transmission by infected contacts or returning travellers that can be prevented.
+However, determining the optimal quarantine strategy to implement depends on the impact that shortening the duration of quarantine has on individuals, society, and the economy, versus how much weight is assigned to a consequential increase in transmission.
+Both the individual, societal and economic impact, as well as the weight of transmission increase, will have to be considered based on the current epidemiological situation.
+We have shown that there are quarantine strategies based on a test-and-release protocol that, from an epidemiological viewpoint, perform almost as well as the standard 10 day quarantine, but with a lower cost in terms of person days spent in quarantine.
+This applies to both travellers and contacts, but the specifics depend on the context.
+
+\pagebreak
+# Supplemental figures {-}
+\setcounter{figure}{0}
+\renewcommand*\thefigure{S\arabic{figure}}
+
+```{r travellers-quarantine-total, fig.width = 8, fig.cap = "Total transmission prevented in returning travellers. A) The fraction of total onward transmission per quarantined traveller that is prevented by quarantine [$F$; Eq. \\eqref{eq:area}]. B) The relative utility of different quarantine strategies (x-axis) compared to $n=10$ days, i.e. $U(n')/U(10)$ [Eq. \\eqref{eq:travellers:relUtility}]. Colours represent the duration of travel $y$ and we assume infection can occur on any day $-y \\le t_E \\le 0$ with uniform probability.\\label{fig:travellers:quarantineTotal}"}
+#' Fraction of contacts that occur between 0 and n (duration of quarantine)
+nCompare <- 10
+y.vals = c(1,2,3,5,7,10,14)
+n.vals <- seq(0,15)
+
+colours <- scale_colour_viridis_d(
+  option = "inferno", end = 0.9, name = "duration of travel (y)",
+  labels = dayLabels(y.vals), aesthetics = c("colour","fill"),
+  guide = guide_legend(title.position = "left", title.hjust = 0.5, nrow = 1))
+
+frac <- lapply(y.vals, function(y) {
+  tE.vals <- seq(-y,0)
+  data.frame(
+    y = factor(y, levels = y.vals),
+    n = n.vals,
+    fraction = sapply(n.vals, function(n) mean(getIntegral(upper = n, lower = 0, tE = tE.vals, params = genParams)))
+    )
+})
+frac <- do.call(rbind, frac)
+#' Plot
+fracPlot <- ggplot(frac, aes(x = n, y = fraction, colour = y, fill = y)) +
+  geom_line(size = lineSize) +
+  my_geom_point +
+  scale_x_continuous(limits = c(0,15)) +
+  scale_y_continuous(limits = c(0,1), labels = scales::percent) +
+  labs(x = "quarantine duration (days)", y = "fraction of total transmission\nprevented by quarantine") +
+  colours +
+  plotTheme + theme(legend.box.background = element_rect(colour = "black"))
+legend <- get_legend(fracPlot)
+fracPlot <- fracPlot + theme(legend.position = "None")
+
+#' Relative utility compared to n=10 days
+relUtility <- lapply(y.vals, function(y) {
+  tE.vals <- seq(-y,0)
+  utility.nCompare <- getUtility(efficacy = mean(getIntegral(upper = nCompare, lower = 0, tE = tE.vals, params = genParams)),
+                                 time = nCompare)
+  relUtility <- lapply(n.vals[n.vals > 0], function(n) {
+    utility <- getUtility(efficacy = mean(getIntegral(upper = n, lower = 0, tE = tE.vals, params = genParams)),
+                             time = n)
+    data.frame(
+      y = factor(y, levels = y.vals),
+      n = n,
+      relUtility = utility / utility.nCompare
+    )
+  })
+  relUtility <- do.call(rbind, relUtility)
+})
+relUtility <- do.call(rbind, relUtility)
+#' Plot
+utilityPlot <- ggplot(relUtility, aes(x = n, y = relUtility, colour = y, fill = y)) +
+  geom_hline(yintercept = 1, color = "darkgrey", size = lineSize) +
+  geom_vline(xintercept = nCompare, color = "darkgrey", size = lineSize) +
+  geom_line(size = lineSize) +
+  my_geom_point +
+  scale_x_continuous(limits = c(0,15)) +
+  coord_cartesian(ylim = c(0,2)) +
+  colours +
+  labs(x = "quarantine duration (days)", y = "\nrelative utility of quarantine") +
+  plotTheme + theme(legend.position = "None")
+
+#' Plot together
+plot_grid(
+  plot_grid(fracPlot, utilityPlot, nrow = 1, axis = "tb", align = "hv", labels = "AUTO"),
+  legend, ncol = 1, rel_heights = c(1,0.2)
+)
+```
+
+
+```{r travellers-further, fig.width = 8, fig.cap = "Adherence and symptoms for returning travellers. A) The change in adherence needed to maintain quarantine efficacy of the $n=10$ day strategy if we change the quarantine duration to $n'$ days (x-axis), i.e. $\\alpha(n')/\\alpha(10) = F_{\\rm local}(10)/F_{\\rm local}(n')$. B) The impact of symptomatic cases on the fraction of total onward transmission per quarantined traveller that is prevented by quarantine. We fix the travel duration to $y=7$ days and assume $t_E$ is uniformly distributed between $-y$ and $0$. The curve $a=1$ corresponds to Fig. \\ref{fig:travellers:quarantine}. We use the mean incubation time of five days, such that $t_S = t_E + 5$.\\label{fig:travellers:further}"}
 #' Relative adherence to maintain quarantine efficacy
 y.vals = c(1,2,3,5,7,10,14)
 nCompare <- 10
@@ -777,9 +1071,10 @@ n.vals <- seq(1,15)
 
 relAdherence <- lapply(y.vals, function(y) {
   tE.vals <- seq(-y,0)
+  maxPreventable <- getIntegral(upper = Inf, lower = 0, tE = tE.vals, params = genParams)
   relAdherence <- sapply(n.vals, function(n) {
-    mean(getIntegral(upper = nCompare, lower = 0, tE = tE.vals, params = genParams))/
-      mean(getIntegral(upper = n, lower = 0, tE = tE.vals, params = genParams))
+    mean(getIntegral(upper = nCompare, lower = 0, tE = tE.vals, params = genParams)/maxPreventable)/
+      mean(getIntegral(upper = n, lower = 0, tE = tE.vals, params = genParams)/maxPreventable)
   })
   data.frame(
     y = factor(y, levels = y.vals),
@@ -789,17 +1084,18 @@ relAdherence <- lapply(y.vals, function(y) {
 })
 relAdherence <- do.call(rbind, relAdherence)
 #' Plot
-adherencePlot <- ggplot(relAdherence, aes(x = n, y = relAdherence, colour = y)) + 
-  geom_hline(yintercept = 1, color = "darkgrey", size = 1.2) +
-  geom_vline(xintercept = nCompare, color = "darkgrey", size = 1.2) +
-  geom_line() +
-  geom_point() +
+adherencePlot <- ggplot(relAdherence, aes(x = n, y = relAdherence, colour = y, fill = y)) + 
+  geom_hline(yintercept = 1, color = "darkgrey", size = lineSize) +
+  geom_vline(xintercept = nCompare, color = "darkgrey", size = lineSize) +
+  geom_line(size = lineSize) +
+  my_geom_point +
   scale_x_continuous(limits = c(0,15)) +
-  #scale_y_continuous(limits = c(0,1), labels = scales::percent) +
   coord_cartesian(ylim = c(0,4.5)) +
-  scale_colour_viridis_d(option = "inferno", end = 0.9, aesthetics = c("colour","fill"), name = "duration\nof travel") +
+  scale_colour_viridis_d(option = "inferno", end = 0.9, name = "duration\nof travel",
+                         aesthetics = c("colour","fill"),
+                         guide = guide_legend(title.position = "left", title.hjust = 0.5, nrow = 2, byrow = T)) +
   labs(x = "quarantine duration (days)", y = "relative adherence required\nto maintain quarantine efficacy") +
-  plotTheme + theme(legend.position = c(0.82,0.63), legend.background = element_blank(), legend.key.height = unit(0.5, "cm"))
+  plotTheme + theme(legend.position = "bottom", legend.box.background = element_rect(colour = "black"), legend.key.height = unit(0.5, "cm"))
 
 #' Fraction of contacts that occur between 0 and n (duration of quarantine) for different asymptomatic fractions
 y <- 7
@@ -808,10 +1104,13 @@ tS.vals <- tE.vals + incParams$mean
 n.vals <- seq(0,15)
 asymp <- seq(0,1,0.25)
 
+maxPreventable <- getIntegral(upper = Inf, lower = 0, tE = tE.vals, params = genParams)
+
 frac <- lapply(asymp, function(a) {
   frac <- sapply(n.vals, function(n) {
-    mean(a * getIntegral(upper = n, lower = 0, tE = tE.vals, params = genParams) +
-    (1 - a) * getIntegral(upper = pmin(n, tS.vals), lower = 0, tE = tE.vals, params = genParams))
+    mean((a * getIntegral(upper = n, lower = 0, tE = tE.vals, params = genParams) +
+    (1 - a) * getIntegral(upper = pmax(pmin(n, tS.vals),0), lower = 0, tE = tE.vals, params = genParams))/
+      maxPreventable)
   })
   data.frame(
     a = factor(a, levels = asymp),
@@ -824,54 +1123,20 @@ frac <- do.call(rbind, frac)
 labs <- scales::percent(asymp)
 names(labs) <- asymp
 
-asymptomaticPlot <- ggplot(frac, aes(x = n, y = fraction, colour = a)) + 
-  geom_line() +
-  geom_point() +
+asymptomaticPlot <- ggplot(frac, aes(x = n, y = fraction, colour = a, fill = a)) + 
+  geom_line(size = lineSize) +
+  my_geom_point +
   scale_x_continuous(limits = c(0,15)) +
   scale_y_continuous(limits = c(0,1), labels = scales::percent) +
-  scale_colour_viridis_d(option = "inferno", direction = -1, end = 0.9, aesthetics = c("colour","fill"), name = "fraction\nasymptomatic", labels = labs) +
-  labs(x = "quarantine duration (days)", y = "fraction of transmission\nprevented by quarantine") +
-  plotTheme + theme(legend.position = c(0.2,0.7), legend.background = element_blank(), legend.key.height = unit(0.5,"cm"))
+  scale_colour_viridis_d(option = "viridis", direction = -1, end = 0.9, name = "fraction\nasymptomatic",
+                         aesthetics = c("colour","fill"),
+                         labels = labs, guide = guide_legend(title.position = "left", title.hjust = 0.5, nrow = 2, byrow = T)) +
+  labs(x = "quarantine duration (days)", y = "fraction of local transmission\nprevented by quarantine") +
+  plotTheme + theme(legend.position = "bottom", legend.background = element_rect(colour = "black"), legend.key.height = unit(0.5,"cm"))
 
 #' Plot together
 plot_grid(adherencePlot, asymptomaticPlot, nrow = 1, axis = "tb", align = "hv", labels = "AUTO")
 ```
-
-# Discussion
-Due to the large fraction of presymptomatic and asymptomatic transmission of COVID-19, quarantine is one of the most important measures in controlling the ongoing SARS-CoV-2 epidemic.
-We have shown that quarantining an infected traced contact for 10 days can prevent 75-99\% of their onward transmission.
-For infected returning travellers, the efficacy is more uncertain due to unknown date of infection: if infection occurred significantly prior to return, travellers would not be expected to remain infectious for long after returning.
-However, in the worst case scenario of a contact being infected on the return flight, a 10 day quarantine will prevent 99\% of onward transmission.
-
-Any decrease in the duration of quarantine of an infected individual will result in increased onward transmission, and this fact cannot be ignored.
-However, there are diminishing returns for each day that we add to quarantine: shortening from 10 days to 9 days has little effect in terms of additional transmission.
-One therefore has to assess how much human cost, measured in terms of days spent in quarantine, are we willing to spend to prevent disease transmission.
-By comparing the ratio of prevented transmission to quarantine duration, we have shown that maximal utility strategies can exist.
-Importantly, under this metric the specificity of quarantine does not affect the optimal duration of quarantine.
-Therefore, the argument that we should shorten quarantine because of lack of specificity is misguided.
-
-To further improve the utility of quarantine, the quarantined individuals can be tested and released given a negative result.
-This test-and-release strategy will lead to an increase in the specificity of quarantine, and a lower average quarantine duration across infected and non-infected individuals.
-However, due to the considerable false-negative probability of the PCR test \citep{kucirka:AnnalsofInternalMedicine:2020}, this strategy also leads to increased transmission as infectious individuals are prematurely released.
-Nevertheless, a strategy of testing on day five and releasing negative cases on day seven carries a $1.5$-fold increase in utility compared to a standard 10 day quarantine for traced contacts. 
-
-An argument for shortening the duration of quarantine is that it could lead to higher adherence.
-We quantify the increase in adherence that is required to maintain quarantine efficacy if the duration of quarantine is modified.
-Halving the duration from 10 days to 5 days would require more than twice as many individuals to enter quarantine to maintain the same efficacy.
-If quarantine is shortened further then the required increase in adherence would be too much to achieve.
-Hence this argument is limited in its usefulness.
-
-Throughout we have assumed that individuals would fulfil 100\% of their transmission potential in the absence of quarantine.
-This may not be true if individuals develop symptoms and are isolated as a result of a positive test.
-Therefore our approach will overestimate the efficacy of quarantine, but it is representative of the total transmission prevented by quarantine and isolation.
-
-For travellers, another consideration is that lengthy quarantine is seen as a deterrent to travel to high risk areas \citep{IATA:2020}.
-Any shortening of quarantine may lead to an increase in travel volume, potentially leading to a compounded increase in disease transmission. 
-
-Here, we have considered the utility of quarantine in terms of prevented transmission, regardless of the effective reproduction number.
-Another perspective is that the utility of preventing transmission is crucially dependent on whether it brings the reproductive number under one.
-Ultimately, bringing the reproductive number below one through quarantine is only possible in the presence of efficient contact tracing to find the potentially exposed individuals in a short time, as well as surveillance of disease prevalence to identify high-risk travel.
-Further improving the speed and accuracy of testing will allow average quarantine durations to be shorter, which increases the benefit to cost ratio of quarantine.
 
 
 # References
