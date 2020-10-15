@@ -41,24 +41,12 @@ dayLabels <- function(x) {
 ```
 
 # Abstract
-The numbers of confirmed cases of severe acute respiratory syndrome coronavirus 2 (SARS-CoV-2) infection are increasing in many places.
-Consequently, the number of individuals placed into quarantine is increasing too.
-The large number of individuals in quarantine has high societal and economical costs.
-There is ongoing debate about the duration of quarantine, particularly since the fraction of individuals in quarantine who eventually test positive is perceived as being low.
-We present a mathematical model that uses empirically determined distributions of incubation period, infectivity, and generation time to quantify how the duration of quarantine affects transmission.
-We use this model to examine two quarantine scenarios: traced contacts of confirmed SARS-CoV-2 cases and returning travellers.
-We quantify the impact of shortening the quarantine duration in terms of prevented transmission and the ratio of prevented transmission to days spent in quarantine.
-We also consider the impact of
-i) test-and-release strategies;
-ii) reinforced hygiene measures upon release after a negative test;
-iii) the development of symptoms during quarantine;
-iv) the relationship between quarantine duration and adherence;
-and v) the fraction of individuals in quarantine that are infected.
-When considering the ratio of prevented transmission to days spent in quarantine, we find that the diminishing impact of longer quarantine on transmission prevention may support a quarantine duration below 10 days.
-This ratio can be increased by implementing a test-and-release strategy, and this can be even further strengthened by reinforced hygiene measures post-release.
-We also find that unless a test-and-release strategy is considered, the fraction of individuals in quarantine that are infected does not affect the optimal duration of quarantine under our utility metric.
-Ultimately, we show that there are quarantine strategies based on a test-and-release protocol that, from an epidemiological viewpoint, perform almost as well as the standard 10 day quarantine, but with a lower cost in terms of person days spent in quarantine.
-This applies to both travellers and contacts, but the specifics depend on the context.
+The large number of individuals placed into quarantine because of possible SARS-CoV-2 exposure has high societal and economic costs.
+There is ongoing debate about the appropriate duration of quarantine, particularly since the fraction of individuals who eventually test positive is perceived as being low.
+We use empirically-determined distributions of incubation period, infectivity, and generation time to quantify how the duration of quarantine affects onward transmission from traced contacts of confirmed SARS-CoV-2 cases and from returning travellers.
+We also consider the roles of testing followed by release if negative (test-and-release), reinforced hygiene, adherence, and symptoms in calculating quarantine efficacy.
+We show that there are quarantine strategies based on a test-and-release protocol that, from an epidemiological viewpoint, perform almost as well as a 10 day quarantine, but with fewer person days spent in quarantine.
+The findings apply to both travellers and contacts, but the specifics depend on the context.
 
 # Introduction
 Quarantining individuals with high risk of recent infection is one of the pillars of the non-pharmaceutical interventions to control the ongoing severe acute respiratory syndrome coronavirus 2 (SARS-CoV-2) pandemic \citep{kucharski:TheLancetInfectiousDiseases:2020}.
