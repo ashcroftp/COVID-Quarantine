@@ -1,6 +1,7 @@
 # History files
 .Rhistory
 .Rapp.history
+.DS_Store
 
 # Session Data files
 .RData
@@ -35,6 +36,12 @@ vignettes/*.pdf
 
 # Shiny token, see https://shiny.rstudio.com/articles/shinyapps.html
 rsconnect/
+
+# Dani
+dev-*
+.vscode
+*.Rdata
+*.csv
 
 ## Core latex/pdflatex auxiliary files:
 *.aux
