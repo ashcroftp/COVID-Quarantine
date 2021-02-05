@@ -1,9 +1,11 @@
 [![DOI](https://zenodo.org/badge/298576397.svg)](https://zenodo.org/badge/latestdoi/298576397)
 
 # quarantine2020
-How does the duration of quarantine affect its efficacy?
 
-*Manuscript currently online at https://doi.org/10.1101/2020.09.24.20201061*
+**Quantifying the impact of quarantine duration on COVID-19 transmission**<br>
+Peter Ashcroft, Sonja Lehtinen, Daniel C Angst, Nicola Low, Sebastian Bonhoeffer<br>
+eLife (2021) [10.7554/eLife.63704](https://doi.org/10.7554/eLife.63704)
+
 
 The manuscript is created by the `quarantine.Rmd` R-markdown file, which contains all code required to generate the data and figures.
 Running `knitr` on this file will create a PDF manuscript file.
