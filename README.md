@@ -1,6 +1,6 @@
 [![DOI](https://zenodo.org/badge/298576397.svg)](https://zenodo.org/badge/latestdoi/298576397)
 
-# quarantine2020
+# COVID-Quarantine
 
 **Quantifying the impact of quarantine duration on COVID-19 transmission**<br>
 Peter Ashcroft, Sonja Lehtinen, Daniel C Angst, Nicola Low, Sebastian Bonhoeffer<br>
